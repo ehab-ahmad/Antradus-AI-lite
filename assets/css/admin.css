@@ -1,0 +1,894 @@
+/* =============================================================================
+   Antradus AI — Admin Styles
+   Ocean Blue palette: #003459 | #007ea7 | #00a8e8 | #e0f4fb
+   ============================================================================= */
+
+/* ── Meta Box ─────────────────────────────────────────────────────────────── */
+
+#antradus-wrap * {
+    box-sizing: border-box;
+}
+
+#antradus-wrap {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 13px;
+    color: #1e2d3a;
+}
+
+/* ── Two-column layout ────────────────────────────────────────────────────── */
+
+.antradus-two-col {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 0;
+    align-items: start;
+}
+
+.antradus-col-content {
+    padding: 16px 20px 16px 0;
+    border-right: 1px solid #d6e4ed;
+}
+
+.antradus-col-image {
+    padding: 16px 0 16px 20px;
+}
+
+@media (max-width: 900px) {
+    .antradus-two-col {
+        grid-template-columns: 1fr;
+    }
+    .antradus-col-content {
+        padding: 16px 0;
+        border-right: none;
+        border-bottom: 1px solid #d6e4ed;
+    }
+    .antradus-col-image {
+        padding: 16px 0;
+    }
+}
+
+/* Header */
+.antradus-header {
+    background: linear-gradient(135deg, #003459 0%, #007ea7 55%, #00a8e8 100%);
+    border-radius: 6px 6px 0 0;
+    padding: 13px 18px;
+    margin: -12px -12px 16px -12px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0, 52, 89, .15);
+}
+
+.antradus-header span {
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: .3px;
+}
+
+.antradus-header small {
+    color: rgba(255, 255, 255, .75);
+    font-size: 11px;
+    margin-left: auto;
+}
+
+/* Fields */
+.antradus-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 12px;
+}
+
+.antradus-field label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #4a5b6b;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.antradus-label-hint {
+    font-weight: 400;
+    text-transform: none;
+    color: #8a9ba8;
+    letter-spacing: 0;
+}
+
+.antradus-field input[type="text"],
+.antradus-field input[type="url"],
+.antradus-field select,
+.antradus-field textarea {
+    width: 100%;
+    padding: 0 10px;
+    height: 36px;
+    font-size: 13px;
+    border: 1px solid #c3d4de;
+    border-radius: 4px;
+    background: #fff;
+    color: #1e2d3a;
+    transition: border-color .15s, box-shadow .15s;
+    font-family: inherit;
+}
+
+.antradus-field textarea {
+    height: auto;
+    padding: 8px 10px;
+    resize: vertical;
+}
+
+.antradus-field input[type="url"] {
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.antradus-field input:focus,
+.antradus-field select:focus,
+.antradus-field textarea:focus {
+    border-color: #007ea7;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 168, 232, .18);
+}
+
+.antradus-topic-field {
+    margin-bottom: 14px;
+}
+
+.antradus-topic-field input {
+    height: 40px;
+    font-size: 14px;
+}
+
+/* Row layouts */
+.antradus-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.antradus-row .antradus-field {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+/* Accordions */
+.antradus-accordion {
+    border: 1px solid #d6e4ed;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.antradus-accordion-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #f5f9fc;
+    cursor: pointer;
+    user-select: none;
+    font-size: 13px;
+    font-weight: 600;
+    color: #003459;
+    transition: background .15s;
+}
+
+.antradus-accordion-header:hover {
+    background: #e8f3fa;
+}
+
+.antradus-accordion-icon {
+    font-size: 14px;
+}
+
+.antradus-accordion-arrow {
+    margin-left: auto;
+    display: inline-block;
+    font-size: 11px;
+    color: #007ea7;
+    transition: transform .2s;
+    transform: rotate(180deg); /* closed = ▼ */
+}
+
+.antradus-accordion.is-open .antradus-accordion-arrow {
+    transform: rotate(0deg); /* open = ▲ */
+}
+
+.antradus-accordion-body {
+    display: none;
+    padding: 14px;
+    background: #fff;
+    border-top: 1px solid #d6e4ed;
+}
+
+.antradus-accordion.is-open .antradus-accordion-body {
+    display: block;
+}
+
+/* URL2 row */
+.antradus-url2-input-wrap {
+    position: relative;
+}
+
+.antradus-url2-input-wrap input {
+    padding-right: 36px;
+}
+
+.antradus-url-remove {
+    position: absolute;
+    top: 50%;
+    right: 4px;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: none;
+    color: #8a9ba8;
+    cursor: pointer;
+    font-size: 17px;
+    border-radius: 4px;
+    transition: all .15s;
+    line-height: 1;
+}
+
+.antradus-url-remove:hover {
+    background: #ffe9e9;
+    color: #d63638;
+}
+
+.antradus-add-url-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 13px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1.5px dashed #007ea7;
+    border-radius: 20px;
+    background: #e0f4fb;
+    color: #003459;
+    cursor: pointer;
+    transition: all .15s;
+    margin-top: 6px;
+}
+
+.antradus-add-url-btn:hover {
+    background: #007ea7;
+    color: #fff;
+    border-style: solid;
+}
+
+.antradus-add-url-btn.hidden {
+    display: none;
+}
+
+/* Hints */
+.antradus-hint {
+    font-size: 12px;
+    color: #007ea7;
+    background: #e0f4fb;
+    padding: 7px 11px;
+    border-radius: 4px;
+    border-left: 3px solid #00a8e8;
+    margin-top: 8px;
+    margin-bottom: 4px;
+}
+
+.antradus-merge-hint {
+    font-size: 12px;
+    color: #003459;
+}
+
+/* Topics pills */
+.antradus-topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.antradus-topic-btn {
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1.5px solid #c3d4de;
+    border-radius: 20px;
+    background: #fff;
+    color: #3c5061;
+    cursor: pointer;
+    transition: all .15s;
+}
+
+.antradus-topic-btn:hover {
+    border-color: #007ea7;
+    color: #007ea7;
+}
+
+.antradus-topic-btn.active {
+    background: linear-gradient(135deg, #007ea7, #00a8e8);
+    border-color: #007ea7;
+    color: #fff;
+}
+
+/* Checkboxes */
+.antradus-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 14px;
+    align-items: center;
+}
+
+.antradus-checks label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    color: #3c5061;
+    cursor: pointer;
+}
+
+.antradus-checks input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    accent-color: #007ea7;
+    cursor: pointer;
+}
+
+/* Mode hint bubble */
+#antradus-mode-hint {
+    display: none;
+    font-size: 12px;
+    color: #1e2d3a;
+    background: #e0f4fb;
+    border: 1px solid #b3d9ed;
+    border-radius: 30px;
+    padding: 7px 16px;
+    margin-bottom: 12px;
+    line-height: 1.5;
+    box-shadow: 0 1px 4px rgba(0, 126, 167, .12);
+}
+
+.antradus-hint-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    border-radius: 10px;
+    padding: 2px 8px;
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
+.antradus-badge-green { background: #00a32a; color: #fff; }
+.antradus-badge-blue  { background: #007ea7; color: #fff; }
+.antradus-badge-dark  { background: #003459; color: #fff; }
+
+/* Generate button row */
+.antradus-generate-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.antradus-generate-row #antradus-generate-btn {
+    flex: 2;
+}
+
+.antradus-generate-meta-pro {
+    flex: 1;
+    height: 44px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1.5px dashed #9b59b6;
+    cursor: pointer;
+    padding: 0 10px;
+    line-height: 1.3;
+    white-space: normal;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+/* Generate Content button */
+#antradus-generate-btn {
+    width: 100%;
+    height: 44px;
+    background: linear-gradient(135deg, #003459 0%, #007ea7 55%, #00a8e8 100%);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: .3px;
+    transition: opacity .2s, transform .1s;
+    box-shadow: 0 2px 6px rgba(0, 126, 167, .3);
+}
+
+#antradus-generate-btn:hover  { opacity: .92; }
+#antradus-generate-btn:active { transform: translateY(1px); }
+#antradus-generate-btn:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+
+/* Generate Image button */
+#antradus-image-btn {
+    width: 100%;
+    height: 38px;
+    background: #fff;
+    color: #007ea7;
+    border: 2px solid #007ea7;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: .3px;
+    transition: all .2s;
+    margin-top: 4px;
+}
+
+#antradus-image-btn:hover    { background: #007ea7; color: #fff; }
+#antradus-image-btn:disabled { opacity: .4; cursor: not-allowed; border-color: #a7aaad; color: #a7aaad; }
+
+/* Status messages */
+#antradus-status,
+#antradus-image-status {
+    font-size: 12px;
+    margin-top: 8px;
+    min-height: 18px;
+    padding: 0 4px;
+    color: #4a5b6b;
+    border-left: 3px solid transparent;
+    transition: all .15s;
+}
+
+#antradus-status:not(:empty),
+#antradus-image-status:not(:empty) {
+    padding: 6px 10px;
+    border-radius: 0 4px 4px 0;
+}
+
+#antradus-status.error,
+#antradus-image-status.error {
+    color: #d63638;
+    background: #fff5f5;
+    border-left-color: #d63638;
+}
+
+#antradus-status.success,
+#antradus-image-status.success {
+    color: #00a32a;
+    background: #f0fff4;
+    border-left-color: #00a32a;
+}
+
+/* Meta output box */
+#antradus-meta-output {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: #f3fafd;
+    border: 1px solid #c3d4de;
+    border-radius: 6px;
+}
+
+#antradus-meta-output h4 {
+    margin: 0 0 10px;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #4a5b6b;
+    letter-spacing: .5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#antradus-rm-hint {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+    color: #c0392b;
+    background: #fdf2f1;
+    border: 1px solid #f5c6c2;
+    border-radius: 3px;
+    padding: 2px 7px;
+}
+
+#antradus-meta-output p {
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: #003459;
+}
+
+#antradus-meta-output strong {
+    color: #4a5b6b;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
+
+.antradus-copy-btn {
+    font-size: 11px;
+    padding: 2px 8px;
+    margin-left: 6px;
+    border: 1px solid #c3d4de;
+    border-radius: 3px;
+    cursor: pointer;
+    background: #fff;
+    color: #3c5061;
+    transition: background .1s;
+}
+
+.antradus-copy-btn:hover { background: #e0f4fb; }
+
+/* Divider */
+.antradus-divider {
+    border: none;
+    border-top: 1px solid #d6e4ed;
+    margin: 14px 0;
+}
+
+/* Image ready bar */
+#antradus-image-ready-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+#antradus-preview-btn {
+    width: 100%;
+    height: 36px;
+    background: #eaf4f9;
+    color: #003459;
+    border: 1px solid #c3d4de;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+}
+
+#antradus-preview-btn:hover { background: #d6e9f2; }
+
+#antradus-set-featured-btn {
+    width: 100%;
+    height: 36px;
+    background: #0073aa;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .2s;
+}
+
+#antradus-set-featured-btn:hover    { opacity: .85; }
+#antradus-set-featured-btn:disabled { background: #a7aaad; cursor: not-allowed; opacity: 1; }
+
+/* Album generating locked section */
+.antradus-album-section {
+    margin-top: 18px;
+    border-color: #c39bd3;
+}
+
+.antradus-album-header {
+    background: linear-gradient(135deg, #f8f0ff, #f0f4ff);
+    color: #4a235a;
+}
+
+.antradus-album-header:hover {
+    background: linear-gradient(135deg, #efe0ff, #e8edff);
+}
+
+.antradus-album-header .antradus-accordion-arrow {
+    color: #9b59b6;
+}
+
+.antradus-album-body {
+    border-top-color: #c39bd3;
+}
+
+.antradus-album-generate-btn {
+    width: 100%;
+    height: 36px;
+    background: linear-gradient(135deg, #f8f0ff, #f0f4ff);
+    color: #6c3483;
+    border: 1.5px dashed #9b59b6;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: not-allowed;
+    opacity: .8;
+    margin-bottom: 12px;
+}
+
+/* Pro notice with stacked upgrade link */
+.antradus-pro-notice--col {
+    flex-wrap: wrap;
+}
+
+.antradus-pro-upgrade-link--row {
+    display: block;
+    margin-top: 10px;
+    text-align: center;
+}
+
+/* Modal */
+#antradus-modal-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 20, 40, .78);
+    z-index: 999999;
+    align-items: center;
+    justify-content: center;
+}
+
+.antradus-modal {
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    max-width: 500px;
+    max-height: 90vh;
+    width: 90%;
+    position: relative;
+    box-shadow: 0 10px 40px rgba(0, 52, 89, .4);
+    overflow-y: auto;
+}
+
+#antradus-modal-close {
+    position: absolute;
+    top: 10px; right: 14px;
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: #4a5b6b;
+    line-height: 1;
+}
+
+#antradus-modal-close:hover { color: #d63638; }
+
+.antradus-modal h3 {
+    margin: 0 0 14px;
+    font-size: 14px;
+    color: #003459;
+}
+
+#antradus-modal-img {
+    width: 100%;
+    border-radius: 6px;
+    display: block;
+    margin-bottom: 14px;
+    max-height: 55vh;
+    object-fit: contain;
+}
+
+#antradus-modal-set-featured {
+    width: 100%;
+    height: 38px;
+    background: #0073aa;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .2s;
+}
+
+#antradus-modal-set-featured:hover { opacity: .85; }
+
+/* =============================================================================
+   Settings Page
+   ============================================================================= */
+
+.antradus-settings-wrap {
+    padding-top: 10px;
+}
+
+.antradus-settings-layout {
+    display: flex;
+    gap: 28px;
+    align-items: flex-start;
+    margin-top: 16px;
+}
+
+/* Left nav */
+.antradus-settings-nav {
+    width: 160px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 32px;
+}
+
+.antradus-nav-heading {
+    font-size: 10px;
+    font-weight: 700;
+    color: #8a9ba8;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    margin: 0 0 8px;
+    padding: 0 4px;
+}
+
+.antradus-settings-nav a {
+    display: block;
+    padding: 7px 10px;
+    font-size: 13px;
+    color: #3c5061;
+    text-decoration: none;
+    border-radius: 5px;
+    margin-bottom: 2px;
+    transition: background .15s, color .15s;
+}
+
+.antradus-settings-nav a:hover {
+    background: #e0f4fb;
+    color: #007ea7;
+}
+
+/* Main content */
+.antradus-settings-main {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Sections */
+.antradus-settings-section {
+    background: #fff;
+    border: 1px solid #d6e4ed;
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+}
+
+.antradus-settings-section h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #003459;
+    margin: 0 0 16px;
+    padding: 0;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.antradus-section-icon {
+    font-size: 16px;
+}
+
+.antradus-settings-section .form-table th {
+    padding: 12px 20px 12px 0;
+    font-weight: 600;
+    color: #3c5061;
+    white-space: nowrap;
+}
+
+.antradus-settings-section .form-table td {
+    padding: 10px 0;
+}
+
+.antradus-settings-section .form-table input[type="text"],
+.antradus-settings-section .form-table input[type="password"] {
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.antradus-settings-section .form-table input:focus,
+.antradus-settings-section .form-table textarea:focus {
+    border-color: #007ea7;
+    box-shadow: 0 0 0 3px rgba(0, 168, 232, .18);
+}
+
+/* Submit button area */
+.antradus-settings-main .submit {
+    margin-top: 4px;
+}
+
+.antradus-settings-main #submit {
+    background: linear-gradient(135deg, #003459, #007ea7);
+    border-color: #003459;
+    color: #fff;
+    font-weight: 700;
+    padding: 8px 24px;
+    height: auto;
+    transition: opacity .2s;
+}
+
+.antradus-settings-main #submit:hover { opacity: .88; }
+
+/* ── Pro feature upsell elements ────────────────────────────────────────────── */
+
+.antradus-pro-btn {
+    background: linear-gradient(135deg, #f8f0ff, #f0f4ff) !important;
+    border-color: #9b59b6 !important;
+    color: #6c3483 !important;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.antradus-pro-btn:hover {
+    background: linear-gradient(135deg, #9b59b6, #6c3483) !important;
+    border-style: solid !important;
+    color: #fff !important;
+}
+
+.antradus-pro-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 13px 14px;
+    background: linear-gradient(135deg, #f8f0ff, #f0f4ff);
+    border: 1px solid #c39bd3;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #4a235a;
+    line-height: 1.5;
+}
+
+.antradus-pro-notice-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.antradus-pro-notice div {
+    flex: 1;
+    min-width: 0;
+}
+
+.antradus-pro-notice strong {
+    display: block;
+    margin-bottom: 3px;
+    color: #4a235a;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.antradus-pro-upgrade-link {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    padding: 7px 14px;
+    background: linear-gradient(135deg, #9b59b6, #6c3483);
+    color: #fff !important;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: opacity .2s;
+    flex-shrink: 0;
+    align-self: center;
+    box-shadow: 0 2px 6px rgba(108, 52, 131, .3);
+}
+
+.antradus-pro-upgrade-link:hover {
+    opacity: .85;
+    color: #fff !important;
+}
+
+
+/* Inline settings links */
+.antradus-settings-link {
+    font-size: 11px;
+    color: #007ea7;
+    text-decoration: underline;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    margin-left: 6px;
+    white-space: nowrap;
+}
+
+.antradus-settings-link:hover {
+    color: #003459;
+}
+
+.antradus-prompt-note {
+    margin: 4px 0 10px;
+    font-size: 11px;
+}
