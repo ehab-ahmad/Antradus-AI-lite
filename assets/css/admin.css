@@ -616,6 +616,14 @@
     text-align: center;
 }
 
+/* Inline image preview (block editor) */
+#antradus-inline-preview img {
+    width: 100%;
+    border-radius: 6px;
+    display: block;
+    box-shadow: 0 2px 10px rgba(0, 52, 89, .2);
+}
+
 /* Modal */
 #antradus-modal-overlay {
     position: fixed;

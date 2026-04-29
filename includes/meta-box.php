@@ -7,21 +7,23 @@ add_action( 'admin_enqueue_scripts', function ( $hook ) {
     global $post;
     $post_id = $post ? absint( $post->ID ) : 0;
 
-    $css_ver = filemtime( ANTRADUS_AI_LITE_DIR . 'assets/css/admin.css' ) ?: ANTRADUS_AI_LITE_VERSION;
-    $js_ver  = filemtime( ANTRADUS_AI_LITE_DIR . 'assets/js/admin.js'  ) ?: ANTRADUS_AI_LITE_VERSION;
-    wp_enqueue_style( 'antradus-admin', ANTRADUS_AI_LITE_URL . 'assets/css/admin.css', [], $css_ver );
-    wp_enqueue_script( 'antradus-admin', ANTRADUS_AI_LITE_URL . 'assets/js/admin.js', [], $js_ver, true );
-    wp_localize_script( 'antradus-admin', 'antradusData', [
+    $use_block = $post ? use_block_editor_for_post( $post ) : false;
+    $js_file   = $use_block ? 'admin-gutenberg.js' : 'admin-classic.js';
+    $js_handle = $use_block ? 'antradus-gutenberg' : 'antradus-classic';
+
+    $css_ver = filemtime( ANTRADUS_AI_LITE_DIR . 'assets/css/admin.css'      ) ?: ANTRADUS_AI_LITE_VERSION;
+    $js_ver  = filemtime( ANTRADUS_AI_LITE_DIR . 'assets/js/' . $js_file     ) ?: ANTRADUS_AI_LITE_VERSION;
+    wp_enqueue_style(  'antradus-admin', ANTRADUS_AI_LITE_URL . 'assets/css/admin.css',     [], $css_ver );
+    wp_enqueue_script( $js_handle,       ANTRADUS_AI_LITE_URL . 'assets/js/' . $js_file, [], $js_ver, true );
+    wp_localize_script( $js_handle, 'antradusData', [
         'ajaxUrl' => admin_url( 'admin-ajax.php' ),
         'postId'  => $post_id,
         'proUrl'  => ANTRADUS_AI_LITE_PRO_URL,
         'nonces'  => [
-            'fetchUrl'          => wp_create_nonce( 'antradus_fetch_url' ),
-            'generate'          => wp_create_nonce( 'antradus_generate' ),
-            'checkGenerateJob'  => wp_create_nonce( 'antradus_check_generate_job' ),
-            'generateImage'     => wp_create_nonce( 'antradus_generate_image' ),
-            'checkImageJob'     => wp_create_nonce( 'antradus_check_image_job' ),
-            'setFeatured'       => wp_create_nonce( 'antradus_set_featured' ),
+            'fetchUrl'      => wp_create_nonce( 'antradus_fetch_url' ),
+            'generate'      => wp_create_nonce( 'antradus_generate' ),
+            'generateImage' => wp_create_nonce( 'antradus_generate_image' ),
+            'setFeatured'   => wp_create_nonce( 'antradus_set_featured' ),
         ],
     ] );
 } );
@@ -239,6 +241,11 @@ function antradus_lite_meta_box_html( $post ) {
                 <div id="antradus-image-ready-bar" style="display:none;">
                     <button type="button" id="antradus-preview-btn">&#128247; Preview</button>
                     <button type="button" id="antradus-set-featured-btn" disabled>&#9733; Set as Featured</button>
+                </div>
+
+                <!-- Inline preview — shown in block editor instead of the modal -->
+                <div id="antradus-inline-preview" style="display:none;margin-top:10px;">
+                    <img id="antradus-inline-img" src="" alt="Generated image" />
                 </div>
 
                 <!-- Album Generating — Pro feature -->

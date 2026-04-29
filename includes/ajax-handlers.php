@@ -472,7 +472,7 @@ function antradus_lite_build_and_run_generate( $job ) {
     }
 }
 
-// ── Generate content — dispatch background job ────────────────────────────────
+// ── Generate content ──────────────────────────────────────────────────────────
 
 add_action( 'wp_ajax_antradus_generate', function () {
     check_ajax_referer( 'antradus_generate', 'nonce' );
@@ -489,56 +489,9 @@ add_action( 'wp_ajax_antradus_generate', function () {
 
     if ( ! $keyword && ! $source ) wp_send_json_error( 'No keyword or source content provided' );
 
-    $job_id = wp_generate_password( 16, false );
-    $token  = wp_generate_password( 32, false );
-
-    set_transient( 'antradus_gen_' . $job_id, [
-        'status'    => 'pending',
-        'token'     => $token,
-        'keyword'   => $keyword,
-        'source'    => $source,
-        'style'     => $style,
-        'tone'      => $tone,
-        'lang'      => $lang,
-        'niche'     => $niche,
-        'incl_faq'  => $incl_faq,
-        'incl_meta' => $incl_meta,
-    ], HOUR_IN_SECONDS );
-
-    antradus_lite_dispatch_generate_bg( $job_id, $token );
-
-    wp_send_json_success( [ 'job_id' => $job_id ] );
-} );
-
-function antradus_lite_dispatch_generate_bg( $job_id, $token ) {
-    wp_remote_post( admin_url( 'admin-ajax.php' ), [
-        'timeout'   => 0.01,
-        'blocking'  => false,
-        'sslverify' => apply_filters( 'https_local_ssl_verify', false ),
-        'body'      => [
-            'action' => 'antradus_process_generate_bg',
-            'job_id' => $job_id,
-            'token'  => $token,
-        ],
-    ] );
-}
-
-add_action( 'wp_ajax_nopriv_antradus_process_generate_bg', 'antradus_lite_process_generate_bg' );
-add_action( 'wp_ajax_antradus_process_generate_bg',        'antradus_lite_process_generate_bg' );
-
-function antradus_lite_process_generate_bg() {
     @set_time_limit( 0 );
 
-    $job_id = sanitize_text_field( wp_unslash( $_POST['job_id'] ?? '' ) );
-    $token  = sanitize_text_field( wp_unslash( $_POST['token']  ?? '' ) );
-    if ( ! $job_id || ! $token ) wp_die();
-
-    $job = get_transient( 'antradus_gen_' . $job_id );
-    if ( ! $job || ! hash_equals( $job['token'], $token ) ) wp_die();
-    if ( $job['status'] !== 'pending' ) wp_die();
-
-    $job['status'] = 'running';
-    set_transient( 'antradus_gen_' . $job_id, $job, HOUR_IN_SECONDS );
+    $job = compact( 'keyword', 'source', 'style', 'tone', 'lang', 'niche', 'incl_faq', 'incl_meta' );
 
     try {
         $raw = antradus_lite_build_and_run_generate( $job );
@@ -549,45 +502,16 @@ function antradus_lite_process_generate_bg() {
         $parsed = json_decode( $raw, true );
 
         if ( json_last_error() !== JSON_ERROR_NONE || empty( $parsed['article'] ) ) {
-            $result = [ 'article' => $raw, 'meta_title' => '', 'meta_desc' => '' ];
-        } else {
-            $result = [
-                'article'    => $parsed['article']    ?? '',
-                'meta_title' => $parsed['meta_title'] ?? '',
-                'meta_desc'  => $parsed['meta_desc']  ?? '',
-            ];
+            wp_send_json_success( [ 'article' => $raw, 'meta_title' => '', 'meta_desc' => '' ] );
         }
 
-        $job['status'] = 'done';
-        $job['result'] = $result;
+        wp_send_json_success( [
+            'article'    => $parsed['article']    ?? '',
+            'meta_title' => $parsed['meta_title'] ?? '',
+            'meta_desc'  => $parsed['meta_desc']  ?? '',
+        ] );
     } catch ( \Exception $e ) {
-        $job['status'] = 'error';
-        $job['error']  = $e->getMessage();
-    }
-
-    unset( $job['token'] );
-    set_transient( 'antradus_gen_' . $job_id, $job, HOUR_IN_SECONDS );
-    wp_die();
-}
-
-add_action( 'wp_ajax_antradus_check_generate_job', function () {
-    check_ajax_referer( 'antradus_check_generate_job', 'nonce' );
-    if ( ! current_user_can( 'edit_posts' ) ) wp_send_json_error( 'Unauthorized' );
-
-    $job_id = sanitize_text_field( wp_unslash( $_POST['job_id'] ?? '' ) );
-    if ( ! $job_id ) wp_send_json_error( 'Missing job ID' );
-
-    $job = get_transient( 'antradus_gen_' . $job_id );
-    if ( ! $job ) wp_send_json_error( 'Job not found or expired. Please try again.' );
-
-    if ( $job['status'] === 'done' ) {
-        delete_transient( 'antradus_gen_' . $job_id );
-        wp_send_json_success( [ 'status' => 'done', 'result' => $job['result'] ] );
-    } elseif ( $job['status'] === 'error' ) {
-        delete_transient( 'antradus_gen_' . $job_id );
-        wp_send_json_error( $job['error'] );
-    } else {
-        wp_send_json_success( [ 'status' => $job['status'] ] );
+        wp_send_json_error( $e->getMessage() );
     }
 } );
 
@@ -622,9 +546,9 @@ function antradus_lite_throw_request_error( $wp_error ) {
 }
 
 function antradus_lite_save_image_to_library( $img_data, $post_id ) {
-    $filename      = 'antradus-ai-' . time() . '.png';
-    $upload        = wp_upload_bits( $filename, null, $img_data );
-    if ( $upload['error'] ) wp_send_json_error( 'Upload error: ' . $upload['error'] );
+    $filename = 'antradus-ai-' . time() . '.png';
+    $upload   = wp_upload_bits( $filename, null, $img_data );
+    if ( $upload['error'] ) throw new \RuntimeException( 'Upload error: ' . $upload['error'] );
 
     $attachment_id = wp_insert_attachment( [
         'post_mime_type' => 'image/png',
@@ -633,7 +557,7 @@ function antradus_lite_save_image_to_library( $img_data, $post_id ) {
         'post_status'    => 'inherit',
     ], $upload['file'], $post_id );
 
-    if ( is_wp_error( $attachment_id ) ) wp_send_json_error( 'Attachment error: ' . $attachment_id->get_error_message() );
+    if ( is_wp_error( $attachment_id ) ) throw new \RuntimeException( 'Attachment error: ' . $attachment_id->get_error_message() );
     wp_update_attachment_metadata( $attachment_id, wp_generate_attachment_metadata( $attachment_id, $upload['file'] ) );
 
     return [ 'attachment_id' => $attachment_id, 'url' => $upload['url'] ];
@@ -782,84 +706,7 @@ function antradus_lite_generate_image_gemini( $image_prompt, $post_id ) {
     return antradus_lite_save_image_to_library( $img_data, $post_id );
 }
 
-// ── Image job: dispatch + background processor + status check ─────────────────
-
-function antradus_lite_dispatch_image_bg( $job_id, $token ) {
-    wp_remote_post( admin_url( 'admin-ajax.php' ), [
-        'timeout'   => 0.01,
-        'blocking'  => false,
-        'sslverify' => apply_filters( 'https_local_ssl_verify', false ),
-        'body'      => [
-            'action' => 'antradus_process_image_bg',
-            'job_id' => $job_id,
-            'token'  => $token,
-        ],
-    ] );
-}
-
-add_action( 'wp_ajax_nopriv_antradus_process_image_bg', 'antradus_lite_process_image_bg' );
-add_action( 'wp_ajax_antradus_process_image_bg',        'antradus_lite_process_image_bg' );
-
-function antradus_lite_process_image_bg() {
-    @set_time_limit( 0 );
-
-    $job_id = sanitize_text_field( wp_unslash( $_POST['job_id'] ?? '' ) );
-    $token  = sanitize_text_field( wp_unslash( $_POST['token']  ?? '' ) );
-    if ( ! $job_id || ! $token ) wp_die();
-
-    $job = get_transient( 'antradus_img_' . $job_id );
-    if ( ! $job || ! hash_equals( $job['token'], $token ) ) wp_die();
-    if ( $job['status'] !== 'pending' ) wp_die();
-
-    $job['status'] = 'running';
-    set_transient( 'antradus_img_' . $job_id, $job, HOUR_IN_SECONDS );
-
-    require_once ABSPATH . 'wp-admin/includes/media.php';
-    require_once ABSPATH . 'wp-admin/includes/file.php';
-    require_once ABSPATH . 'wp-admin/includes/image.php';
-
-    try {
-        $provider = get_option( 'antradus_provider', 'openrouter' );
-        switch ( $provider ) {
-            case 'gemini':     $result = antradus_lite_generate_image_gemini( $job['prompt'], $job['post_id'] );     break;
-            case 'openrouter': $result = antradus_lite_generate_image_openrouter( $job['prompt'], $job['post_id'] ); break;
-            case 'anthropic':  throw new \RuntimeException( 'Anthropic does not support image generation. Switch provider in Settings → Antradus AI.' );
-            default:           $result = antradus_lite_generate_image_openai( $job['prompt'], $job['post_id'] );
-        }
-        $job['status'] = 'done';
-        $job['result'] = $result;
-    } catch ( \Exception $e ) {
-        $job['status'] = 'error';
-        $job['error']  = $e->getMessage();
-    }
-
-    unset( $job['token'] );
-    set_transient( 'antradus_img_' . $job_id, $job, HOUR_IN_SECONDS );
-    wp_die();
-}
-
-add_action( 'wp_ajax_antradus_check_image_job', function () {
-    check_ajax_referer( 'antradus_check_image_job', 'nonce' );
-    if ( ! current_user_can( 'edit_posts' ) ) wp_send_json_error( 'Unauthorized' );
-
-    $job_id = sanitize_text_field( wp_unslash( $_POST['job_id'] ?? '' ) );
-    if ( ! $job_id ) wp_send_json_error( 'Missing job ID' );
-
-    $job = get_transient( 'antradus_img_' . $job_id );
-    if ( ! $job ) wp_send_json_error( 'Job not found or expired. Please try again.' );
-
-    if ( $job['status'] === 'done' ) {
-        delete_transient( 'antradus_img_' . $job_id );
-        wp_send_json_success( [ 'status' => 'done', 'result' => $job['result'] ] );
-    } elseif ( $job['status'] === 'error' ) {
-        delete_transient( 'antradus_img_' . $job_id );
-        wp_send_json_error( $job['error'] );
-    } else {
-        wp_send_json_success( [ 'status' => $job['status'] ] );
-    }
-} );
-
-// ── Generate image (dispatch job) ─────────────────────────────────────────────
+// ── Generate image ────────────────────────────────────────────────────────────
 
 add_action( 'wp_ajax_antradus_generate_image', function () {
     check_ajax_referer( 'antradus_generate_image', 'nonce' );
@@ -882,19 +729,24 @@ add_action( 'wp_ajax_antradus_generate_image', function () {
         if ( $extra_instructions ) $image_prompt .= "\n\nAdditional instructions: " . $extra_instructions;
     }
 
-    $job_id = wp_generate_password( 16, false );
-    $token  = wp_generate_password( 32, false );
+    @set_time_limit( 0 );
 
-    set_transient( 'antradus_img_' . $job_id, [
-        'status'  => 'pending',
-        'token'   => $token,
-        'prompt'  => $image_prompt,
-        'post_id' => $post_id,
-    ], HOUR_IN_SECONDS );
+    require_once ABSPATH . 'wp-admin/includes/media.php';
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+    require_once ABSPATH . 'wp-admin/includes/image.php';
 
-    antradus_lite_dispatch_image_bg( $job_id, $token );
-
-    wp_send_json_success( [ 'job_id' => $job_id ] );
+    try {
+        $provider = get_option( 'antradus_provider', 'openrouter' );
+        switch ( $provider ) {
+            case 'gemini':     $result = antradus_lite_generate_image_gemini( $image_prompt, $post_id );     break;
+            case 'openrouter': $result = antradus_lite_generate_image_openrouter( $image_prompt, $post_id ); break;
+            case 'anthropic':  throw new \RuntimeException( 'Anthropic does not support image generation. Switch provider in Settings → Antradus AI.' );
+            default:           $result = antradus_lite_generate_image_openai( $image_prompt, $post_id );
+        }
+        wp_send_json_success( $result );
+    } catch ( \Exception $e ) {
+        wp_send_json_error( $e->getMessage() );
+    }
 } );
 
 // ── Set featured image ────────────────────────────────────────────────────────
