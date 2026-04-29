@@ -181,7 +181,7 @@
             } catch (e) { setStatus('Network error: ' + e.message, 'error'); setLoading(false); return; }
         }
 
-        setStatus('Crafting your article... (15–40 seconds)');
+        setStatus('Starting article generation...');
 
         try {
             var resp = await ajaxPost({
@@ -199,25 +199,65 @@
 
             if (!resp.success) { setStatus('Error: ' + (resp.data || 'Unknown error'), 'error'); setLoading(false); return; }
 
-            var result = resp.data;
-            pasteIntoEditor(result.article);
-            generatedArticleText = result.article.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 800);
-            document.getElementById('antradus-image-btn').disabled = false;
+            var genJobId      = resp.data.job_id;
+            var genElapsed    = 0;
+            var genMax        = 180;
+            var genInterval   = 3000;
+            var genDots       = 0;
 
-            if (result.meta_title || result.meta_desc) {
-                document.getElementById('antradus-meta-title-val').textContent = result.meta_title || '';
-                document.getElementById('antradus-meta-desc-val').textContent  = result.meta_desc  || '';
-                var kwDisplay = document.getElementById('antradus-keyword-display');
-                var kwRow     = document.getElementById('antradus-keyword-row');
-                if (kwDisplay && kwRow) {
-                    kwDisplay.textContent = keyword;
-                    kwRow.style.display   = keyword ? '' : 'none';
+            while (genElapsed < genMax) {
+                await new Promise(function (r) { setTimeout(r, genInterval); });
+                genElapsed += genInterval / 1000;
+                genDots = (genDots % 3) + 1;
+                setStatus('Crafting your article' + '.'.repeat(genDots) + ' (' + genElapsed + 's)');
+
+                try {
+                    var genCheck = await ajaxPost({
+                        action: 'antradus_check_generate_job',
+                        job_id: genJobId,
+                        nonce:  nonces.checkGenerateJob,
+                    });
+
+                    if (!genCheck.success) {
+                        setStatus('Error: ' + (genCheck.data || 'Unknown error'), 'error');
+                        setLoading(false);
+                        return;
+                    }
+
+                    if (genCheck.data.status === 'done') {
+                        var result = genCheck.data.result;
+                        pasteIntoEditor(result.article);
+                        generatedArticleText = result.article.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 800);
+                        document.getElementById('antradus-image-btn').disabled = false;
+
+                        if (result.meta_title || result.meta_desc) {
+                            document.getElementById('antradus-meta-title-val').textContent = result.meta_title || '';
+                            document.getElementById('antradus-meta-desc-val').textContent  = result.meta_desc  || '';
+                            var kwDisplay = document.getElementById('antradus-keyword-display');
+                            var kwRow     = document.getElementById('antradus-keyword-row');
+                            if (kwDisplay && kwRow) {
+                                kwDisplay.textContent = keyword;
+                                kwRow.style.display   = keyword ? '' : 'none';
+                            }
+                            document.getElementById('antradus-meta-output').style.display = '';
+                            fillSeoPlugin(result.meta_title, result.meta_desc, keyword);
+                        }
+
+                        setStatus('Article crafted successfully.', 'success');
+                        setLoading(false);
+                        return;
+                    }
+                    // pending/running — keep polling
+                } catch (pollErr) {
+                    // transient network hiccup — keep polling
                 }
-                document.getElementById('antradus-meta-output').style.display = '';
-                fillSeoPlugin(result.meta_title, result.meta_desc, keyword);
             }
 
-            setStatus('Article crafted successfully.', 'success');
+            setStatus(
+                'Article generation timed out after ' + genMax + 's. ' +
+                'Your hosting server may be limiting PHP execution time — try a faster/lighter model in Settings → Antradus AI, or ask your host to increase the max_execution_time limit.',
+                'error'
+            );
 
         } catch (e) { setStatus('Network error: ' + e.message, 'error'); }
 
@@ -240,7 +280,7 @@
         }
 
         setImageLoading(true);
-        setImageStatus('Creating your image... (20–40 seconds)');
+        setImageStatus('Starting image generation...');
         document.getElementById('antradus-image-ready-bar').style.display = 'none';
 
         try {
@@ -255,16 +295,53 @@
 
             if (!resp.success) { setImageStatus('Error: ' + (resp.data || 'Unknown error'), 'error'); setImageLoading(false); return; }
 
-            generatedImageUrl     = resp.data.url;
-            generatedAttachmentId = resp.data.attachment_id;
+            var jobId      = resp.data.job_id;
+            var elapsed    = 0;
+            var maxSeconds = 180;
+            var interval   = 3000;
+            var dots       = 0;
 
-            document.getElementById('antradus-modal-img').src = generatedImageUrl;
+            while (elapsed < maxSeconds) {
+                await new Promise(function (r) { setTimeout(r, interval); });
+                elapsed += interval / 1000;
+                dots = (dots % 3) + 1;
+                setImageStatus('Generating image' + '.'.repeat(dots) + ' (' + elapsed + 's)');
 
-            var bar = document.getElementById('antradus-image-ready-bar');
-            bar.style.display = 'flex';
-            document.getElementById('antradus-set-featured-btn').disabled = false;
+                try {
+                    var check = await ajaxPost({
+                        action: 'antradus_check_image_job',
+                        job_id: jobId,
+                        nonce:  nonces.checkImageJob,
+                    });
 
-            setImageStatus('Image created and saved to Media Library.', 'success');
+                    if (!check.success) {
+                        setImageStatus('Error: ' + (check.data || 'Unknown error'), 'error');
+                        setImageLoading(false);
+                        return;
+                    }
+
+                    if (check.data.status === 'done') {
+                        generatedImageUrl     = check.data.result.url;
+                        generatedAttachmentId = check.data.result.attachment_id;
+                        document.getElementById('antradus-modal-img').src = generatedImageUrl;
+                        var bar = document.getElementById('antradus-image-ready-bar');
+                        bar.style.display = 'flex';
+                        document.getElementById('antradus-set-featured-btn').disabled = false;
+                        setImageStatus('Image created and saved to Media Library.', 'success');
+                        setImageLoading(false);
+                        return;
+                    }
+                    // status is pending or running — keep polling
+                } catch (pollErr) {
+                    // transient network hiccup — keep polling
+                }
+            }
+
+            setImageStatus(
+                'Image generation timed out after ' + maxSeconds + 's. ' +
+                'The model may be overloaded or your hosting server interrupted the request — try a lighter/faster model in Settings → Antradus AI.',
+                'error'
+            );
 
         } catch (e) { setImageStatus('Network error: ' + e.message, 'error'); }
 

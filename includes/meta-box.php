@@ -16,10 +16,12 @@ add_action( 'admin_enqueue_scripts', function ( $hook ) {
         'postId'  => $post_id,
         'proUrl'  => ANTRADUS_AI_LITE_PRO_URL,
         'nonces'  => [
-            'fetchUrl'      => wp_create_nonce( 'antradus_fetch_url' ),
-            'generate'      => wp_create_nonce( 'antradus_generate' ),
-            'generateImage' => wp_create_nonce( 'antradus_generate_image' ),
-            'setFeatured'   => wp_create_nonce( 'antradus_set_featured' ),
+            'fetchUrl'          => wp_create_nonce( 'antradus_fetch_url' ),
+            'generate'          => wp_create_nonce( 'antradus_generate' ),
+            'checkGenerateJob'  => wp_create_nonce( 'antradus_check_generate_job' ),
+            'generateImage'     => wp_create_nonce( 'antradus_generate_image' ),
+            'checkImageJob'     => wp_create_nonce( 'antradus_check_image_job' ),
+            'setFeatured'       => wp_create_nonce( 'antradus_set_featured' ),
         ],
     ] );
 } );
