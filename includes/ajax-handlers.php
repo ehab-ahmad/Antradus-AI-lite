@@ -50,6 +50,335 @@ add_action( 'wp_ajax_antradus_fetch_url', function () {
     wp_send_json_success( $text );
 } );
 
+// ── Provider API functions ─────────────────────────────────────────────────────
+
+function antradus_lite_call_openai( $system, $user_msg ) {
+    $api_key = get_option( 'antradus_openai_api_key', '' );
+    if ( ! $api_key ) wp_send_json_error( 'OpenAI API key not set. Go to Settings → Antradus AI.' );
+    $model = get_option( 'antradus_openai_model', 'gpt-4o' );
+
+    $response = wp_remote_post( 'https://api.openai.com/v1/chat/completions', [
+        'timeout' => 150,
+        'headers' => [
+            'Authorization' => 'Bearer ' . $api_key,
+            'Content-Type'  => 'application/json',
+        ],
+        'body' => wp_json_encode( [
+            'model'                 => $model,
+            'messages'              => [
+                [ 'role' => 'system', 'content' => $system ],
+                [ 'role' => 'user',   'content' => $user_msg ],
+            ],
+            'max_completion_tokens' => 4096,
+        ] ),
+    ] );
+
+    if ( is_wp_error( $response ) ) wp_send_json_error( 'Request failed: ' . $response->get_error_message() );
+    $code = wp_remote_retrieve_response_code( $response );
+    $body = json_decode( wp_remote_retrieve_body( $response ), true );
+    if ( $code !== 200 ) wp_send_json_error( $body['error']['message'] ?? 'HTTP ' . $code );
+
+    return $body['choices'][0]['message']['content'] ?? '';
+}
+
+function antradus_lite_call_anthropic( $system, $user_msg ) {
+    $api_key = get_option( 'antradus_anthropic_api_key', '' );
+    if ( ! $api_key ) wp_send_json_error( 'Anthropic API key not set. Go to Settings → Antradus AI.' );
+    $model = get_option( 'antradus_anthropic_model', 'claude-opus-4-7' );
+
+    $response = wp_remote_post( 'https://api.anthropic.com/v1/messages', [
+        'timeout' => 150,
+        'headers' => [
+            'x-api-key'         => $api_key,
+            'anthropic-version' => '2023-06-01',
+            'Content-Type'      => 'application/json',
+        ],
+        'body' => wp_json_encode( [
+            'model'      => $model,
+            'max_tokens' => 4096,
+            'system'     => $system,
+            'messages'   => [ [ 'role' => 'user', 'content' => $user_msg ] ],
+        ] ),
+    ] );
+
+    if ( is_wp_error( $response ) ) wp_send_json_error( 'Request failed: ' . $response->get_error_message() );
+    $code = wp_remote_retrieve_response_code( $response );
+    $body = json_decode( wp_remote_retrieve_body( $response ), true );
+    if ( $code !== 200 ) wp_send_json_error( $body['error']['message'] ?? 'HTTP ' . $code );
+
+    return $body['content'][0]['text'] ?? '';
+}
+
+function antradus_lite_call_gemini( $system, $user_msg ) {
+    $api_key = get_option( 'antradus_gemini_api_key', '' );
+    if ( ! $api_key ) wp_send_json_error( 'Gemini API key not set. Go to Settings → Antradus AI.' );
+    $model = get_option( 'antradus_gemini_model', 'gemini-2.0-flash' );
+    $url   = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode( $model ) . ':generateContent?key=' . urlencode( $api_key );
+
+    $response = wp_remote_post( $url, [
+        'timeout' => 150,
+        'headers' => [ 'Content-Type' => 'application/json' ],
+        'body'    => wp_json_encode( [
+            'systemInstruction' => [ 'parts' => [ [ 'text' => $system ] ] ],
+            'contents'          => [ [ 'role' => 'user', 'parts' => [ [ 'text' => $user_msg ] ] ] ],
+            'generationConfig'  => [ 'maxOutputTokens' => 4096 ],
+        ] ),
+    ] );
+
+    if ( is_wp_error( $response ) ) wp_send_json_error( 'Request failed: ' . $response->get_error_message() );
+    $code = wp_remote_retrieve_response_code( $response );
+    $body = json_decode( wp_remote_retrieve_body( $response ), true );
+    if ( $code !== 200 ) wp_send_json_error( $body['error']['message'] ?? 'HTTP ' . $code );
+
+    return $body['candidates'][0]['content']['parts'][0]['text'] ?? '';
+}
+
+function antradus_lite_call_openrouter( $system, $user_msg ) {
+    $api_key = get_option( 'antradus_openrouter_api_key', '' );
+    if ( ! $api_key ) wp_send_json_error( 'OpenRouter API key not set. Go to Settings → Antradus AI.' );
+    $model = get_option( 'antradus_openrouter_model', 'openai/gpt-4o' );
+
+    $response = wp_remote_post( 'https://openrouter.ai/api/v1/chat/completions', [
+        'timeout' => 150,
+        'headers' => [
+            'Authorization' => 'Bearer ' . $api_key,
+            'HTTP-Referer'  => get_site_url(),
+            'X-Title'       => 'Antradus AI',
+            'Content-Type'  => 'application/json',
+        ],
+        'body' => wp_json_encode( [
+            'model'      => $model,
+            'messages'   => [
+                [ 'role' => 'system', 'content' => $system ],
+                [ 'role' => 'user',   'content' => $user_msg ],
+            ],
+            'max_tokens' => 4096,
+        ] ),
+    ] );
+
+    if ( is_wp_error( $response ) ) wp_send_json_error( 'Request failed: ' . $response->get_error_message() );
+    $code = wp_remote_retrieve_response_code( $response );
+    $body = json_decode( wp_remote_retrieve_body( $response ), true );
+    if ( $code !== 200 ) {
+        $msg = $body['error']['message'] ?? ( 'HTTP ' . $code );
+        wp_send_json_error( $msg . ' — Try a different model or check your OpenRouter credits.' );
+    }
+
+    return $body['choices'][0]['message']['content'] ?? '';
+}
+
+// ── Fetch model list from provider ────────────────────────────────────────────
+
+add_action( 'wp_ajax_antradus_fetch_models', function () {
+    check_ajax_referer( 'antradus_fetch_models', 'nonce' );
+    if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Unauthorized' );
+
+    $allowed  = [ 'openai', 'anthropic', 'gemini', 'openrouter' ];
+    $provider = sanitize_text_field( wp_unslash( $_POST['provider'] ?? '' ) );
+    if ( ! in_array( $provider, $allowed, true ) ) wp_send_json_error( 'Unknown provider.' );
+
+    $type = sanitize_text_field( wp_unslash( $_POST['type'] ?? 'text' ) );
+    if ( ! in_array( $type, [ 'text', 'image' ], true ) ) $type = 'text';
+
+    $api_key = sanitize_text_field( wp_unslash( $_POST['api_key'] ?? '' ) );
+    if ( empty( $api_key ) ) {
+        $api_key = get_option( 'antradus_' . $provider . '_api_key', '' );
+    }
+
+    // Image model fetching — only OpenAI and Gemini support image generation
+    if ( $type === 'image' ) {
+        switch ( $provider ) {
+
+            case 'openai':
+                if ( ! $api_key ) wp_send_json_error( 'No API key — enter or save your OpenAI key first.' );
+                $res  = wp_remote_get( 'https://api.openai.com/v1/models', [
+                    'timeout' => 15,
+                    'headers' => [ 'Authorization' => 'Bearer ' . $api_key ],
+                ] );
+                if ( is_wp_error( $res ) ) wp_send_json_error( $res->get_error_message() );
+                $code = wp_remote_retrieve_response_code( $res );
+                $data = json_decode( wp_remote_retrieve_body( $res ), true );
+                if ( $code !== 200 ) wp_send_json_error( $data['error']['message'] ?? 'HTTP ' . $code );
+
+                $models = [];
+                foreach ( $data['data'] ?? [] as $m ) {
+                    $id = $m['id'];
+                    if ( strpos( $id, 'dall-e' ) === false && strpos( $id, 'gpt-image' ) === false ) continue;
+                    $models[] = [ 'id' => $id, 'name' => $id ];
+                }
+                usort( $models, function ( $a, $b ) { return strcmp( $b['id'], $a['id'] ); } );
+                wp_send_json_success( $models );
+
+            case 'gemini':
+                if ( ! $api_key ) wp_send_json_error( 'No API key — enter or save your Gemini key first.' );
+                $res  = wp_remote_get( 'https://generativelanguage.googleapis.com/v1beta/models?key=' . urlencode( $api_key ), [
+                    'timeout' => 15,
+                ] );
+                if ( is_wp_error( $res ) ) wp_send_json_error( $res->get_error_message() );
+                $code = wp_remote_retrieve_response_code( $res );
+                $data = json_decode( wp_remote_retrieve_body( $res ), true );
+                if ( $code !== 200 ) wp_send_json_error( $data['error']['message'] ?? 'HTTP ' . $code );
+
+                $models = [];
+                foreach ( $data['models'] ?? [] as $m ) {
+                    $id = str_replace( 'models/', '', $m['name'] );
+                    if ( strpos( $id, 'imagen' ) === false ) continue;
+                    if ( ! in_array( 'predict', $m['supportedGenerationMethods'] ?? [], true ) ) continue;
+                    $models[] = [ 'id' => $id, 'name' => $m['displayName'] ?? $id ];
+                }
+                wp_send_json_success( $models );
+
+            case 'openrouter':
+                $headers = [ 'Content-Type' => 'application/json' ];
+                if ( $api_key ) $headers['Authorization'] = 'Bearer ' . $api_key;
+                $res  = wp_remote_get( 'https://openrouter.ai/api/v1/models', [
+                    'timeout' => 15,
+                    'headers' => $headers,
+                ] );
+                if ( is_wp_error( $res ) ) wp_send_json_error( $res->get_error_message() );
+                $code = wp_remote_retrieve_response_code( $res );
+                $data = json_decode( wp_remote_retrieve_body( $res ), true );
+                if ( $code !== 200 ) wp_send_json_error( $data['error']['message'] ?? 'HTTP ' . $code );
+
+                $free = [];
+                $paid = [];
+                foreach ( $data['data'] ?? [] as $m ) {
+                    if ( empty( $m['id'] ) ) continue;
+                    $arch        = $m['architecture'] ?? [];
+                    $modality    = strtolower( $arch['modality'] ?? '' );
+                    $output_mods = $arch['output_modalities'] ?? [];
+                    $id_lower    = strtolower( $m['id'] );
+
+                    // Step 1 — skip definite text-output-only models
+                    // (regular LLMs and vision models that accept images but return text)
+                    if ( $modality === 'text->text' ) continue;
+                    if ( preg_match( '/->text$/', $modality ) ) continue;
+
+                    // Step 2 — must have at least one image-generation signal
+                    $has_image = strpos( $modality, '->image' ) !== false
+                        || in_array( 'image', $output_mods, true )
+                        || preg_match( '/flux|dall-e|stable-diffusion|sdxl|ideogram|recraft|playground/', $id_lower );
+
+                    if ( ! $has_image ) continue;
+                    $pricing  = $m['pricing'] ?? [];
+                    $is_free  = ( ( $pricing['image'] ?? ( $pricing['prompt'] ?? '1' ) ) === '0' );
+                    $label    = $is_free ? '★ FREE — ' : '💰 PAID — ';
+                    if ( $is_free ) {
+                        $free[] = [ 'id' => $m['id'], 'name' => $label . ( $m['name'] ?? $m['id'] ) ];
+                    } else {
+                        $paid[] = [ 'id' => $m['id'], 'name' => $label . ( $m['name'] ?? $m['id'] ) ];
+                    }
+                }
+                usort( $free, function ( $a, $b ) { return strcmp( $a['id'], $b['id'] ); } );
+                usort( $paid, function ( $a, $b ) { return strcmp( $a['id'], $b['id'] ); } );
+                wp_send_json_success( array_merge( $free, $paid ) );
+
+            default:
+                wp_send_json_error( ucfirst( $provider ) . ' does not support image generation.' );
+        }
+    }
+
+    // Text model fetching
+    switch ( $provider ) {
+
+        case 'openai':
+            if ( ! $api_key ) wp_send_json_error( 'No API key — enter or save your OpenAI key first.' );
+            $res  = wp_remote_get( 'https://api.openai.com/v1/models', [
+                'timeout' => 15,
+                'headers' => [ 'Authorization' => 'Bearer ' . $api_key ],
+            ] );
+            if ( is_wp_error( $res ) ) wp_send_json_error( $res->get_error_message() );
+            $code = wp_remote_retrieve_response_code( $res );
+            $data = json_decode( wp_remote_retrieve_body( $res ), true );
+            if ( $code !== 200 ) wp_send_json_error( $data['error']['message'] ?? 'HTTP ' . $code );
+
+            $models = [];
+            foreach ( $data['data'] ?? [] as $m ) {
+                $id = $m['id'];
+                if ( ! preg_match( '/^(gpt-|o1|o3|o4)/', $id ) ) continue;
+                if ( strpos( $id, 'realtime' ) !== false ) continue;
+                if ( strpos( $id, 'audio'    ) !== false ) continue;
+                if ( strpos( $id, 'tts'      ) !== false ) continue;
+                if ( strpos( $id, 'whisper'  ) !== false ) continue;
+                if ( strpos( $id, 'embed'    ) !== false ) continue;
+                $models[] = [ 'id' => $id, 'name' => $id ];
+            }
+            usort( $models, function ( $a, $b ) { return strcmp( $b['id'], $a['id'] ); } );
+            wp_send_json_success( $models );
+
+        case 'anthropic':
+            if ( ! $api_key ) wp_send_json_error( 'No API key — enter or save your Anthropic key first.' );
+            $res  = wp_remote_get( 'https://api.anthropic.com/v1/models', [
+                'timeout' => 15,
+                'headers' => [
+                    'x-api-key'         => $api_key,
+                    'anthropic-version' => '2023-06-01',
+                ],
+            ] );
+            if ( is_wp_error( $res ) ) wp_send_json_error( $res->get_error_message() );
+            $code = wp_remote_retrieve_response_code( $res );
+            $data = json_decode( wp_remote_retrieve_body( $res ), true );
+            if ( $code !== 200 ) wp_send_json_error( $data['error']['message'] ?? 'HTTP ' . $code );
+
+            $models = [];
+            foreach ( $data['data'] ?? [] as $m ) {
+                $models[] = [ 'id' => $m['id'], 'name' => $m['display_name'] ?? $m['id'] ];
+            }
+            wp_send_json_success( $models );
+
+        case 'gemini':
+            if ( ! $api_key ) wp_send_json_error( 'No API key — enter or save your Gemini key first.' );
+            $res  = wp_remote_get( 'https://generativelanguage.googleapis.com/v1beta/models?key=' . urlencode( $api_key ), [
+                'timeout' => 15,
+            ] );
+            if ( is_wp_error( $res ) ) wp_send_json_error( $res->get_error_message() );
+            $code = wp_remote_retrieve_response_code( $res );
+            $data = json_decode( wp_remote_retrieve_body( $res ), true );
+            if ( $code !== 200 ) wp_send_json_error( $data['error']['message'] ?? 'HTTP ' . $code );
+
+            $models = [];
+            foreach ( $data['models'] ?? [] as $m ) {
+                if ( ! in_array( 'generateContent', $m['supportedGenerationMethods'] ?? [], true ) ) continue;
+                $id       = str_replace( 'models/', '', $m['name'] );
+                $models[] = [ 'id' => $id, 'name' => $m['displayName'] ?? $id ];
+            }
+            wp_send_json_success( $models );
+
+        case 'openrouter':
+            $headers = [ 'Content-Type' => 'application/json' ];
+            if ( $api_key ) $headers['Authorization'] = 'Bearer ' . $api_key;
+            $res  = wp_remote_get( 'https://openrouter.ai/api/v1/models', [
+                'timeout' => 15,
+                'headers' => $headers,
+            ] );
+            if ( is_wp_error( $res ) ) wp_send_json_error( $res->get_error_message() );
+            $code = wp_remote_retrieve_response_code( $res );
+            $data = json_decode( wp_remote_retrieve_body( $res ), true );
+            if ( $code !== 200 ) wp_send_json_error( $data['error']['message'] ?? 'HTTP ' . $code );
+
+            $free = [];
+            $paid = [];
+            foreach ( $data['data'] ?? [] as $m ) {
+                if ( empty( $m['id'] ) ) continue;
+                $pricing = $m['pricing'] ?? [];
+                $is_free = ( ( $pricing['prompt'] ?? '1' ) === '0' ) && ( ( $pricing['completion'] ?? '1' ) === '0' );
+                $label   = $is_free ? '★ FREE — ' : '💰 PAID — ';
+                $entry   = [
+                    'id'   => $m['id'],
+                    'name' => $label . ( $m['name'] ?? $m['id'] ),
+                ];
+                if ( $is_free ) {
+                    $free[] = $entry;
+                } else {
+                    $paid[] = $entry;
+                }
+            }
+            usort( $free, function ( $a, $b ) { return strcmp( $a['id'], $b['id'] ); } );
+            usort( $paid, function ( $a, $b ) { return strcmp( $a['id'], $b['id'] ); } );
+            wp_send_json_success( array_merge( $free, $paid ) );
+    }
+} );
+
 // ── Generate content ──────────────────────────────────────────────────────────
 
 add_action( 'wp_ajax_antradus_generate', function () {
@@ -68,10 +397,6 @@ add_action( 'wp_ajax_antradus_generate', function () {
     $incl_meta = ( $_POST['incl_meta'] ?? '0' ) === '1';
 
     if ( ! $keyword && ! $source ) wp_send_json_error( 'No keyword or source content provided' );
-
-    $api_key = get_option( 'antradus_openai_api_key', '' );
-    if ( ! $api_key ) wp_send_json_error( 'API key not set. Go to Settings — Antradus AI.' );
-    $model = get_option( 'antradus_openai_model', 'gpt-4o' );
 
     $default_system  = "You are a professional content writer. Write engaging, SEO-friendly articles for a general audience.\n\n";
     $default_system .= "If a source article is provided, use it only as a fact source — do not follow its structure. ";
@@ -93,30 +418,23 @@ add_action( 'wp_ajax_antradus_generate', function () {
     if ( $niche )  $user_msg .= "Niche: {$niche}\n";
     if ( $source ) $user_msg .= "\nSource article:\n{$source}";
 
-    $response = wp_remote_post( 'https://api.openai.com/v1/chat/completions', [
-        'timeout' => 150,
-        'headers' => [
-            'Authorization' => 'Bearer ' . $api_key,
-            'Content-Type'  => 'application/json',
-        ],
-        'body' => wp_json_encode( [
-            'model'                 => $model,
-            'messages'              => [
-                [ 'role' => 'system', 'content' => $system ],
-                [ 'role' => 'user',   'content' => $user_msg ],
-            ],
-            'max_completion_tokens' => 4096,
-        ] ),
-    ] );
+    $provider = get_option( 'antradus_provider', 'openrouter' );
 
-    if ( is_wp_error( $response ) ) wp_send_json_error( 'Request failed: ' . $response->get_error_message() );
+    switch ( $provider ) {
+        case 'anthropic':
+            $raw = antradus_lite_call_anthropic( $system, $user_msg );
+            break;
+        case 'gemini':
+            $raw = antradus_lite_call_gemini( $system, $user_msg );
+            break;
+        case 'openrouter':
+            $raw = antradus_lite_call_openrouter( $system, $user_msg );
+            break;
+        default:
+            $raw = antradus_lite_call_openai( $system, $user_msg );
+    }
 
-    $code = wp_remote_retrieve_response_code( $response );
-    $body = json_decode( wp_remote_retrieve_body( $response ), true );
-    if ( $code !== 200 ) wp_send_json_error( $body['error']['message'] ?? 'HTTP ' . $code );
-
-    $raw = $body['choices'][0]['message']['content'] ?? '';
-    if ( ! $raw ) wp_send_json_error( 'Empty response from OpenAI' );
+    if ( ! $raw ) wp_send_json_error( 'Empty response from AI provider' );
 
     $raw    = trim( preg_replace( [ '/^```json\s*/i', '/^```\s*/i', '/\s*```$/' ], '', $raw ) );
     $parsed = json_decode( $raw, true );
@@ -131,6 +449,155 @@ add_action( 'wp_ajax_antradus_generate', function () {
         'meta_desc'  => $parsed['meta_desc']  ?? '',
     ] );
 } );
+
+// ── Active image style prompt ─────────────────────────────────────────────────
+
+function antradus_lite_active_image_style_prompt() {
+    $presets = antradus_lite_image_presets();
+    $key     = get_option( 'antradus_image_preset', 'default' );
+    $preset  = $presets[ $key ] ?? $presets['default'];
+    $prompt  = get_option( $preset['option'], $preset['default'] );
+
+    $color_enabled = get_option( 'antradus_image_color_enabled', '0' );
+    $color         = get_option( 'antradus_image_color', '' );
+    if ( $color_enabled === '1' && $color && $color !== '#ffffff' ) {
+        $prompt .= "\n\nColor grading: Shift the entire color palette toward {$color} — apply this hue as the dominant tint across lighting, shadows, and highlights throughout the composition.";
+    }
+
+    return $prompt;
+}
+
+// ── Image generation helpers ───────────────────────────────────────────────────
+
+function antradus_lite_save_image_to_library( $img_data, $post_id ) {
+    $filename      = 'antradus-ai-' . time() . '.png';
+    $upload        = wp_upload_bits( $filename, null, $img_data );
+    if ( $upload['error'] ) wp_send_json_error( 'Upload error: ' . $upload['error'] );
+
+    $attachment_id = wp_insert_attachment( [
+        'post_mime_type' => 'image/png',
+        'post_title'     => $filename,
+        'post_content'   => '',
+        'post_status'    => 'inherit',
+    ], $upload['file'], $post_id );
+
+    if ( is_wp_error( $attachment_id ) ) wp_send_json_error( 'Attachment error: ' . $attachment_id->get_error_message() );
+    wp_update_attachment_metadata( $attachment_id, wp_generate_attachment_metadata( $attachment_id, $upload['file'] ) );
+
+    return [ 'attachment_id' => $attachment_id, 'url' => $upload['url'] ];
+}
+
+function antradus_lite_generate_image_openai( $image_prompt, $post_id ) {
+    $api_key = get_option( 'antradus_openai_api_key', '' );
+    if ( ! $api_key ) wp_send_json_error( 'OpenAI API key not set. Go to Settings → Antradus AI.' );
+    $model = get_option( 'antradus_openai_image_model', 'gpt-image-1' );
+
+    $response = wp_remote_post( 'https://api.openai.com/v1/images/generations', [
+        'timeout' => 120,
+        'headers' => [
+            'Authorization' => 'Bearer ' . $api_key,
+            'Content-Type'  => 'application/json',
+        ],
+        'body' => wp_json_encode( [
+            'model'  => $model,
+            'prompt' => $image_prompt,
+            'n'      => 1,
+            'size'   => '1024x1024',
+        ] ),
+    ] );
+
+    if ( is_wp_error( $response ) ) wp_send_json_error( 'Image request failed: ' . $response->get_error_message() );
+    $code       = wp_remote_retrieve_response_code( $response );
+    $body       = json_decode( wp_remote_retrieve_body( $response ), true );
+    if ( $code !== 200 ) wp_send_json_error( $body['error']['message'] ?? 'HTTP ' . $code );
+
+    $image_data = $body['data'][0] ?? [];
+
+    if ( ! empty( $image_data['b64_json'] ) ) {
+        $img_data = base64_decode( $image_data['b64_json'] );
+        if ( ! $img_data ) wp_send_json_error( 'Could not decode image data' );
+        return antradus_lite_save_image_to_library( $img_data, $post_id );
+    }
+
+    if ( ! empty( $image_data['url'] ) ) {
+        $attachment_id = media_sideload_image( $image_data['url'], $post_id, null, 'id' );
+        if ( is_wp_error( $attachment_id ) ) wp_send_json_error( 'Sideload error: ' . $attachment_id->get_error_message() );
+        return [ 'attachment_id' => $attachment_id, 'url' => wp_get_attachment_url( $attachment_id ) ];
+    }
+
+    wp_send_json_error( 'No image data in OpenAI response' );
+}
+
+function antradus_lite_generate_image_openrouter( $image_prompt, $post_id ) {
+    $api_key = get_option( 'antradus_openrouter_api_key', '' );
+    if ( ! $api_key ) wp_send_json_error( 'OpenRouter API key not set. Go to Settings → Antradus AI.' );
+    $model = get_option( 'antradus_openrouter_image_model', 'black-forest-labs/flux-1.1-pro' );
+
+    $response = wp_remote_post( 'https://openrouter.ai/api/v1/images/generations', [
+        'timeout' => 120,
+        'headers' => [
+            'Authorization' => 'Bearer ' . $api_key,
+            'HTTP-Referer'  => get_site_url(),
+            'X-Title'       => 'Antradus AI',
+            'Content-Type'  => 'application/json',
+        ],
+        'body' => wp_json_encode( [
+            'model'  => $model,
+            'prompt' => $image_prompt,
+            'n'      => 1,
+        ] ),
+    ] );
+
+    if ( is_wp_error( $response ) ) wp_send_json_error( 'Image request failed: ' . $response->get_error_message() );
+    $code       = wp_remote_retrieve_response_code( $response );
+    $body       = json_decode( wp_remote_retrieve_body( $response ), true );
+    if ( $code !== 200 ) wp_send_json_error( $body['error']['message'] ?? 'HTTP ' . $code );
+
+    $image_data = $body['data'][0] ?? [];
+
+    if ( ! empty( $image_data['b64_json'] ) ) {
+        $img_data = base64_decode( $image_data['b64_json'] );
+        if ( ! $img_data ) wp_send_json_error( 'Could not decode image data' );
+        return antradus_lite_save_image_to_library( $img_data, $post_id );
+    }
+
+    if ( ! empty( $image_data['url'] ) ) {
+        $attachment_id = media_sideload_image( $image_data['url'], $post_id, null, 'id' );
+        if ( is_wp_error( $attachment_id ) ) wp_send_json_error( 'Sideload error: ' . $attachment_id->get_error_message() );
+        return [ 'attachment_id' => $attachment_id, 'url' => wp_get_attachment_url( $attachment_id ) ];
+    }
+
+    wp_send_json_error( 'No image data in OpenRouter response' );
+}
+
+function antradus_lite_generate_image_gemini( $image_prompt, $post_id ) {
+    $api_key = get_option( 'antradus_gemini_api_key', '' );
+    if ( ! $api_key ) wp_send_json_error( 'Gemini API key not set. Go to Settings → Antradus AI.' );
+    $model = get_option( 'antradus_gemini_image_model', 'imagen-3.0-generate-001' );
+    $url   = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode( $model ) . ':predict?key=' . urlencode( $api_key );
+
+    $response = wp_remote_post( $url, [
+        'timeout' => 120,
+        'headers' => [ 'Content-Type' => 'application/json' ],
+        'body'    => wp_json_encode( [
+            'instances'  => [ [ 'prompt' => $image_prompt ] ],
+            'parameters' => [ 'sampleCount' => 1 ],
+        ] ),
+    ] );
+
+    if ( is_wp_error( $response ) ) wp_send_json_error( 'Image request failed: ' . $response->get_error_message() );
+    $code = wp_remote_retrieve_response_code( $response );
+    $body = json_decode( wp_remote_retrieve_body( $response ), true );
+    if ( $code !== 200 ) wp_send_json_error( $body['error']['message'] ?? 'HTTP ' . $code );
+
+    $b64 = $body['predictions'][0]['bytesBase64Encoded'] ?? '';
+    if ( ! $b64 ) wp_send_json_error( 'No image data in Gemini response' );
+
+    $img_data = base64_decode( $b64 );
+    if ( ! $img_data ) wp_send_json_error( 'Could not decode Gemini image data' );
+
+    return antradus_lite_save_image_to_library( $img_data, $post_id );
+}
 
 // ── Generate image ─────────────────────────────────────────────────────────────
 
@@ -147,15 +614,7 @@ add_action( 'wp_ajax_antradus_generate_image', function () {
 
     if ( ! $article_text && ! $extra_instructions ) wp_send_json_error( 'No article text or instructions provided' );
 
-    $api_key = get_option( 'antradus_openai_api_key', '' );
-    if ( ! $api_key ) wp_send_json_error( 'API key not set. Go to Settings — Antradus AI.' );
-
-    $image_model  = get_option( 'antradus_image_model', 'gpt-image-1' );
-    $style_prompt = get_option( 'antradus_image_prompt',
-        'A high-end lifestyle marketing banner in a clean editorial thumbnail style, professional commercial photography, ' .
-        'soft cinematic lighting, shallow depth of field, warm color grading, visually pleasing composition, ' .
-        'premium brand feel, social media thumbnail layout, ultra realistic, sharp focus, high detail, 4K, advertising style'
-    );
+    $style_prompt = antradus_lite_active_image_style_prompt();
 
     if ( $instructions_only && $extra_instructions ) {
         $image_prompt = $extra_instructions;
@@ -165,61 +624,24 @@ add_action( 'wp_ajax_antradus_generate_image', function () {
         if ( $extra_instructions ) $image_prompt .= "\n\nAdditional instructions: " . $extra_instructions;
     }
 
-    $response = wp_remote_post( 'https://api.openai.com/v1/images/generations', [
-        'timeout' => 120,
-        'headers' => [
-            'Authorization' => 'Bearer ' . $api_key,
-            'Content-Type'  => 'application/json',
-        ],
-        'body' => wp_json_encode( [
-            'model'  => $image_model,
-            'prompt' => $image_prompt,
-            'n'      => 1,
-            'size'   => '1024x1024',
-        ] ),
-    ] );
-
-    if ( is_wp_error( $response ) ) wp_send_json_error( 'Image request failed: ' . $response->get_error_message() );
-
-    $code       = wp_remote_retrieve_response_code( $response );
-    $body       = json_decode( wp_remote_retrieve_body( $response ), true );
-    if ( $code !== 200 ) wp_send_json_error( $body['error']['message'] ?? 'HTTP ' . $code );
-
-    $image_data = $body['data'][0] ?? [];
-
     require_once ABSPATH . 'wp-admin/includes/media.php';
     require_once ABSPATH . 'wp-admin/includes/file.php';
     require_once ABSPATH . 'wp-admin/includes/image.php';
 
-    if ( ! empty( $image_data['b64_json'] ) ) {
-        $img_data = base64_decode( $image_data['b64_json'] );
-        if ( ! $img_data ) wp_send_json_error( 'Could not decode image data' );
+    $provider = get_option( 'antradus_provider', 'openrouter' );
 
-        $filename = 'antradus-ai-' . time() . '.png';
-        $upload   = wp_upload_bits( $filename, null, $img_data );
-        if ( $upload['error'] ) wp_send_json_error( 'Upload error: ' . $upload['error'] );
-
-        $attachment_id = wp_insert_attachment( [
-            'post_mime_type' => 'image/png',
-            'post_title'     => $filename,
-            'post_content'   => '',
-            'post_status'    => 'inherit',
-        ], $upload['file'], $post_id );
-
-        if ( is_wp_error( $attachment_id ) ) wp_send_json_error( 'Attachment error: ' . $attachment_id->get_error_message() );
-
-        wp_update_attachment_metadata( $attachment_id, wp_generate_attachment_metadata( $attachment_id, $upload['file'] ) );
-
-        wp_send_json_success( [ 'attachment_id' => $attachment_id, 'url' => $upload['url'] ] );
-
-    } elseif ( ! empty( $image_data['url'] ) ) {
-        $attachment_id = media_sideload_image( $image_data['url'], $post_id, null, 'id' );
-        if ( is_wp_error( $attachment_id ) ) wp_send_json_error( 'Sideload error: ' . $attachment_id->get_error_message() );
-
-        wp_send_json_success( [ 'attachment_id' => $attachment_id, 'url' => wp_get_attachment_url( $attachment_id ) ] );
-
-    } else {
-        wp_send_json_error( 'No image data in response' );
+    switch ( $provider ) {
+        case 'gemini':
+            wp_send_json_success( antradus_lite_generate_image_gemini( $image_prompt, $post_id ) );
+            break;
+        case 'openrouter':
+            wp_send_json_success( antradus_lite_generate_image_openrouter( $image_prompt, $post_id ) );
+            break;
+        case 'anthropic':
+            wp_send_json_error( 'Anthropic does not support image generation. Switch to OpenAI, Gemini, or OpenRouter in Settings → Antradus AI.' );
+            break;
+        default:
+            wp_send_json_success( antradus_lite_generate_image_openai( $image_prompt, $post_id ) );
     }
 } );
 

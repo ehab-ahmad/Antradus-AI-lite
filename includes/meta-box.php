@@ -26,7 +26,14 @@ add_action( 'admin_enqueue_scripts', function ( $hook ) {
 
 add_action( 'admin_enqueue_scripts', function ( $hook ) {
     if ( $hook !== 'settings_page_antradus-ai' ) return;
-    wp_enqueue_style( 'antradus-settings', ANTRADUS_AI_LITE_URL . 'assets/css/admin.css', [], ANTRADUS_AI_LITE_VERSION );
+    $css_ver = filemtime( ANTRADUS_AI_LITE_DIR . 'assets/css/admin.css'   ) ?: ANTRADUS_AI_LITE_VERSION;
+    $js_ver  = filemtime( ANTRADUS_AI_LITE_DIR . 'assets/js/settings.js'  ) ?: ANTRADUS_AI_LITE_VERSION;
+    wp_enqueue_style(  'antradus-settings', ANTRADUS_AI_LITE_URL . 'assets/css/admin.css',  [], $css_ver );
+    wp_enqueue_script( 'antradus-settings', ANTRADUS_AI_LITE_URL . 'assets/js/settings.js', [], $js_ver, true );
+    wp_localize_script( 'antradus-settings', 'antradusSettings', [
+        'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+        'nonce'   => wp_create_nonce( 'antradus_fetch_models' ),
+    ] );
 } );
 
 add_action( 'add_meta_boxes', function () {
@@ -140,6 +147,21 @@ function antradus_lite_meta_box_html( $post ) {
                         <select id="antradus-lang">
                             <option>English</option>
                             <option>Arabic</option>
+                            <option>Spanish</option>
+                            <option>French</option>
+                            <option>German</option>
+                            <option>Portuguese</option>
+                            <option>Italian</option>
+                            <option>Russian</option>
+                            <option>Chinese (Simplified)</option>
+                            <option>Japanese</option>
+                            <option>Korean</option>
+                            <option>Hindi</option>
+                            <option>Turkish</option>
+                            <option>Dutch</option>
+                            <option>Polish</option>
+                            <option>Swedish</option>
+                            <option>Indonesian</option>
                         </select>
                     </div>
                 </div>
