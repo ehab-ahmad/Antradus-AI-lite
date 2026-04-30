@@ -78,7 +78,7 @@
             if (words >= 50) {
                 btn.disabled = false;
                 if (!generatedArticleText) {
-                    generatedArticleText = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 800);
+                    generatedArticleText = extractImageContext(content);
                 }
             } else {
                 btn.disabled = true;
@@ -167,7 +167,7 @@
 
             var result = resp.data;
             pasteIntoEditor(result.article);
-            generatedArticleText = result.article.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 800);
+            generatedArticleText = extractImageContext(result.article);
             document.getElementById('antradus-image-btn').disabled = false;
 
             if (result.meta_title || result.meta_desc) {
@@ -181,6 +181,9 @@
                 }
                 document.getElementById('antradus-meta-output').style.display = '';
                 fillSeoPlugin(result.meta_title, result.meta_desc, keyword);
+                if (result.meta_title) {
+                    try { wp.data.dispatch('core/editor').editPost({ title: result.meta_title }); } catch (e) {}
+                }
             }
 
             setStatus('Article crafted successfully.', 'success');
@@ -198,7 +201,7 @@
         if (!generatedArticleText) {
             try {
                 var content = wp.data.select('core/editor').getEditedPostContent() || '';
-                generatedArticleText = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 800);
+                generatedArticleText = extractImageContext(content);
             } catch (e) {}
         }
 
@@ -430,6 +433,15 @@
         seoValues.title   = title   || '';
         seoValues.desc    = desc    || '';
         seoValues.keyword = keyword || '';
+    }
+
+    function extractImageContext(html) {
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var h1 = doc.querySelector('h1');
+        if (h1) return h1.textContent.trim();
+        var h2 = doc.querySelector('h2');
+        if (h2) return h2.textContent.trim();
+        return doc.body.textContent.trim().split(/\s+/).slice(0, 12).join(' ');
     }
 
     function copyToClipboard(text) {

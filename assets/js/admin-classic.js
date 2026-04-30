@@ -80,7 +80,7 @@
                 var words  = edText.split(/\s+/).filter(Boolean).length;
                 if (words >= 50) {
                     btn.disabled = false;
-                    if (!generatedArticleText) generatedArticleText = edText.substring(0, 800);
+                    if (!generatedArticleText) generatedArticleText = extractImageContext(ed.getContent());
                 } else {
                     btn.disabled = true;
                 }
@@ -94,7 +94,7 @@
             var words = text.split(/\s+/).filter(Boolean).length;
             if (words >= 50) {
                 btn.disabled = false;
-                if (!generatedArticleText) generatedArticleText = text.substring(0, 800);
+                if (!generatedArticleText) generatedArticleText = extractImageContext(ta.value);
             } else {
                 btn.disabled = true;
             }
@@ -109,7 +109,7 @@
             btn.disabled = false;
             if (!generatedArticleText) {
                 var ta2 = document.getElementById('content');
-                if (ta2) generatedArticleText = ta2.value.replace(/<[^>]+>/g, ' ').trim().substring(0, 800);
+                if (ta2) generatedArticleText = extractImageContext(ta2.value);
             }
         } else {
             btn.disabled = true;
@@ -203,7 +203,7 @@
 
             var result = resp.data;
             pasteIntoEditor(result.article);
-            generatedArticleText = result.article.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 800);
+            generatedArticleText = extractImageContext(result.article);
             document.getElementById('antradus-image-btn').disabled = false;
 
             if (result.meta_title || result.meta_desc) {
@@ -217,6 +217,12 @@
                 }
                 document.getElementById('antradus-meta-output').style.display = '';
                 fillSeoPlugin(result.meta_title, result.meta_desc, keyword);
+                var titleField = document.getElementById('title');
+                if (titleField && result.meta_title) {
+                    titleField.value = result.meta_title;
+                    titleField.dispatchEvent(new Event('input'));
+                    titleField.dispatchEvent(new Event('change'));
+                }
             }
 
             setStatus('Article crafted successfully.', 'success');
@@ -467,6 +473,15 @@
         seoValues.title   = title   || '';
         seoValues.desc    = desc    || '';
         seoValues.keyword = keyword || '';
+    }
+
+    function extractImageContext(html) {
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var h1 = doc.querySelector('h1');
+        if (h1) return h1.textContent.trim();
+        var h2 = doc.querySelector('h2');
+        if (h2) return h2.textContent.trim();
+        return doc.body.textContent.trim().split(/\s+/).slice(0, 12).join(' ');
     }
 
     function copyToClipboard(text) {

@@ -96,7 +96,15 @@ add_action( 'admin_init', function () {
     register_setting( 'antradus_settings_group', 'antradus_image_prompt_entertainment',[ 'sanitize_callback' => 'sanitize_textarea_field' ] );
     register_setting( 'antradus_settings_group', 'antradus_image_color',               [ 'sanitize_callback' => 'sanitize_hex_color', 'default' => '#ff6b35' ] );
     register_setting( 'antradus_settings_group', 'antradus_image_color_enabled',       [ 'sanitize_callback' => function ( $v ) { return $v === '1' ? '1' : '0'; }, 'default' => '0' ] );
+    register_setting( 'antradus_settings_group', 'antradus_disable_gutenberg_posts',   [ 'sanitize_callback' => function ( $v ) { return $v === '1' ? '1' : '0'; }, 'default' => '0' ] );
 } );
+
+add_filter( 'use_block_editor_for_post_type', function ( $use, $post_type ) {
+    if ( $post_type === 'post' && get_option( 'antradus_disable_gutenberg_posts', '0' ) === '1' ) {
+        return false;
+    }
+    return $use;
+}, 10, 2 );
 
 function antradus_lite_sanitize_api_key( $new ) {
     $new = sanitize_text_field( $new );
@@ -108,15 +116,15 @@ function antradus_lite_settings_page() {
 
     $provider         = get_option( 'antradus_provider', 'openrouter' );
     $openai_key       = get_option( 'antradus_openai_api_key', '' );
-    $openai_model     = esc_attr( get_option( 'antradus_openai_model', 'gpt-4o' ) );
+    $openai_model     = esc_attr( get_option( 'antradus_openai_model', 'gpt-4o-mini' ) );
     $anthropic_key    = get_option( 'antradus_anthropic_api_key', '' );
-    $anthropic_model  = esc_attr( get_option( 'antradus_anthropic_model', 'claude-opus-4-7' ) );
+    $anthropic_model  = esc_attr( get_option( 'antradus_anthropic_model', 'claude-haiku-4-5-20251001' ) );
     $gemini_key       = get_option( 'antradus_gemini_api_key', '' );
-    $gemini_model     = esc_attr( get_option( 'antradus_gemini_model', 'gemini-2.0-flash' ) );
+    $gemini_model     = esc_attr( get_option( 'antradus_gemini_model', 'gemini-2.0-flash-lite' ) );
     $openrouter_key   = get_option( 'antradus_openrouter_api_key', '' );
-    $openrouter_model = esc_attr( get_option( 'antradus_openrouter_model', 'openai/gpt-4o' ) );
+    $openrouter_model = esc_attr( get_option( 'antradus_openrouter_model', 'google/gemini-2.0-flash-exp:free' ) );
 
-    $openai_image_model      = esc_attr( get_option( 'antradus_openai_image_model', 'gpt-image-1' ) );
+    $openai_image_model      = esc_attr( get_option( 'antradus_openai_image_model', 'dall-e-2' ) );
     $gemini_image_model      = esc_attr( get_option( 'antradus_gemini_image_model', 'imagen-3.0-generate-001' ) );
     $openrouter_image_model  = esc_attr( get_option( 'antradus_openrouter_image_model', 'black-forest-labs/flux-1.1-pro' ) );
     $image_preset        = get_option( 'antradus_image_preset', 'default' );
@@ -143,6 +151,7 @@ function antradus_lite_settings_page() {
                 <a href="#antradus-api-model">AI Providers</a>
                 <a href="#antradus-topics">Topics</a>
                 <a href="#antradus-system-prompt">System Prompt</a>
+                <a href="#antradus-editor-settings">Editor</a>
                 <a href="#antradus-image-settings">Image Settings</a>
             </nav>
 
@@ -362,6 +371,29 @@ function antradus_lite_settings_page() {
                                 <td>
                                     <textarea name="antradus_system_prompt" rows="14" class="large-text" style="font-family:monospace;font-size:12px;"><?php echo $system_prompt; ?></textarea>
                                     <p class="description">Base AI instructions. Keyword, language, style, tone, niche, and output format are appended automatically.</p>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- ── Editor Settings ──────────────────────────────────── -->
+                    <div class="antradus-settings-section" id="antradus-editor-settings">
+                        <h2><span class="antradus-section-icon">✏️</span> Editor Settings</h2>
+                        <table class="form-table">
+                            <tr>
+                                <th scope="row">Classic Editor for Posts</th>
+                                <td>
+                                    <input type="hidden" name="antradus_disable_gutenberg_posts" value="0" />
+                                    <label>
+                                        <input type="checkbox" name="antradus_disable_gutenberg_posts" value="1" <?php checked( get_option( 'antradus_disable_gutenberg_posts', '0' ), '1' ); ?> />
+                                        <strong>Disable the Gutenberg block editor for Posts</strong>
+                                    </label>
+                                    <p class="description" style="margin-top:6px;">
+                                        When enabled, all <strong>Posts</strong> will use the Classic Editor. Pages are not affected.
+                                    </p>
+                                    <p class="description" style="margin-top:4px; color: #2271b1;">
+                                        &#9432; Antradus AI works on both editors, but is easier to use with the Classic Editor — the generated HTML inserts cleanly without block conversion.
+                                    </p>
                                 </td>
                             </tr>
                         </table>

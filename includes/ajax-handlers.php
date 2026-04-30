@@ -64,18 +64,14 @@ add_action( 'wp_ajax_antradus_fetch_url', function () {
     $body = wp_remote_retrieve_body( $response );
     if ( ! $body ) wp_send_json_error( "The website responded but sent back an empty page. Try a different source URL." );
 
-    // Detect Cloudflare challenge / bot-protection pages
-    if ( preg_match( '/<title[^>]*>\s*(Just a moment|Attention Required|Access denied|Security check|DDoS protection)[^<]*<\/title>/i', $body )
-        || strpos( $body, 'cf-browser-verification' ) !== false
-        || strpos( $body, 'cf_chl_opt' ) !== false
-        || strpos( $body, '__cf_chl_f_tk' ) !== false
-        || strpos( $body, 'challenge-platform' ) !== false ) {
+    // Detect Cloudflare challenge pages — require BOTH a challenge title AND a challenge body marker.
+    // Don't check for 'challenge-platform' alone — it appears in CF's regular CDN JS on open pages.
+    $cf_challenge_title = preg_match( '/<title[^>]*>\s*(Just a moment|Attention Required|DDoS protection)[^<]*<\/title>/i', $body );
+    $cf_challenge_body  = strpos( $body, 'cf-browser-verification' ) !== false
+                       || strpos( $body, 'cf_chl_opt' ) !== false
+                       || strpos( $body, '__cf_chl_f_tk' ) !== false;
+    if ( $cf_challenge_title && $cf_challenge_body ) {
         wp_send_json_error( "This site is protected by Cloudflare and won't let automated tools read it. Try finding the same content on a site without bot-protection, or paste the article text directly." );
-    }
-
-    // Detect login / paywall walls
-    if ( preg_match( '/<input[^>]+type=["\']password["\'][^>]*>/i', $body ) ) {
-        wp_send_json_error( "This page is asking for a login before showing the content. Try an open-access version of the article, or paste the text you want to rewrite directly." );
     }
 
     $body = preg_replace( '#<(script|style|nav|header|footer|aside|form|noscript)[^>]*>.*?</\1>#si', '', $body );
@@ -88,8 +84,8 @@ add_action( 'wp_ajax_antradus_fetch_url', function () {
     $text = trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( $text ) ) );
     if ( mb_strlen( $text ) > 6000 ) $text = mb_substr( $text, 0, 6000 ) . '...';
 
-    if ( mb_strlen( $text ) < 150 ) {
-        wp_send_json_error( "We reached the page but couldn't find any article text on it. It might be a JavaScript-rendered app, a paywall landing page, or just very thin content. Try a different source, or paste the text directly." );
+    if ( mb_strlen( $text ) < 50 ) {
+        wp_send_json_error( "We reached the page but couldn't extract any article text — it may be a JavaScript-rendered app. Try pasting the article text directly." );
     }
 
     wp_send_json_success( $text );
@@ -100,7 +96,7 @@ add_action( 'wp_ajax_antradus_fetch_url', function () {
 function antradus_lite_call_openai( $system, $user_msg ) {
     $api_key = get_option( 'antradus_openai_api_key', '' );
     if ( ! $api_key ) throw new \RuntimeException( 'OpenAI API key not set. Go to Settings → Antradus AI.' );
-    $model = get_option( 'antradus_openai_model', 'gpt-4o' );
+    $model = get_option( 'antradus_openai_model', 'gpt-4o-mini' );
 
     $response = wp_remote_post( 'https://api.openai.com/v1/chat/completions', [
         'timeout' => 150,
@@ -129,7 +125,7 @@ function antradus_lite_call_openai( $system, $user_msg ) {
 function antradus_lite_call_anthropic( $system, $user_msg ) {
     $api_key = get_option( 'antradus_anthropic_api_key', '' );
     if ( ! $api_key ) throw new \RuntimeException( 'Anthropic API key not set. Go to Settings → Antradus AI.' );
-    $model = get_option( 'antradus_anthropic_model', 'claude-opus-4-7' );
+    $model = get_option( 'antradus_anthropic_model', 'claude-haiku-4-5-20251001' );
 
     $response = wp_remote_post( 'https://api.anthropic.com/v1/messages', [
         'timeout' => 150,
@@ -157,7 +153,7 @@ function antradus_lite_call_anthropic( $system, $user_msg ) {
 function antradus_lite_call_gemini( $system, $user_msg ) {
     $api_key = get_option( 'antradus_gemini_api_key', '' );
     if ( ! $api_key ) throw new \RuntimeException( 'Gemini API key not set. Go to Settings → Antradus AI.' );
-    $model = get_option( 'antradus_gemini_model', 'gemini-2.0-flash' );
+    $model = get_option( 'antradus_gemini_model', 'gemini-2.0-flash-lite' );
     $url   = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode( $model ) . ':generateContent?key=' . urlencode( $api_key );
 
     $response = wp_remote_post( $url, [
@@ -181,7 +177,7 @@ function antradus_lite_call_gemini( $system, $user_msg ) {
 function antradus_lite_call_openrouter( $system, $user_msg ) {
     $api_key = get_option( 'antradus_openrouter_api_key', '' );
     if ( ! $api_key ) throw new \RuntimeException( 'OpenRouter API key not set. Go to Settings → Antradus AI.' );
-    $model = get_option( 'antradus_openrouter_model', 'openai/gpt-4o' );
+    $model = get_option( 'antradus_openrouter_model', 'google/gemini-2.0-flash-exp:free' );
 
     $response = wp_remote_post( 'https://openrouter.ai/api/v1/chat/completions', [
         'timeout' => 150,
@@ -474,6 +470,22 @@ function antradus_lite_build_and_run_generate( $job ) {
 
 // ── Generate content ──────────────────────────────────────────────────────────
 
+function antradus_lite_fix_names( $text ) {
+    if ( ! $text ) return $text;
+    $system   = 'You are a spelling correction tool. Your only job: if the input contains a misspelled name of a real public figure (athlete, celebrity, politician, historical figure, etc.), rewrite the input with the name correctly spelled. If the name is already correct or there is no public figure name, return the input exactly as-is. Return only the corrected text — no explanation, no quotes, nothing else.';
+    $provider = get_option( 'antradus_provider', 'openrouter' );
+    try {
+        switch ( $provider ) {
+            case 'anthropic':  return trim( antradus_lite_call_anthropic( $system, $text ) ) ?: $text;
+            case 'gemini':     return trim( antradus_lite_call_gemini( $system, $text ) )    ?: $text;
+            case 'openrouter': return trim( antradus_lite_call_openrouter( $system, $text ) ) ?: $text;
+            default:           return trim( antradus_lite_call_openai( $system, $text ) )    ?: $text;
+        }
+    } catch ( \Exception $e ) {
+        return $text;
+    }
+}
+
 add_action( 'wp_ajax_antradus_generate', function () {
     check_ajax_referer( 'antradus_generate', 'nonce' );
     if ( ! current_user_can( 'edit_posts' ) ) wp_send_json_error( 'Unauthorized' );
@@ -490,6 +502,8 @@ add_action( 'wp_ajax_antradus_generate', function () {
     if ( ! $keyword && ! $source ) wp_send_json_error( 'No keyword or source content provided' );
 
     @set_time_limit( 0 );
+
+    if ( $keyword ) $keyword = antradus_lite_fix_names( $keyword );
 
     $job = compact( 'keyword', 'source', 'style', 'tone', 'lang', 'niche', 'incl_faq', 'incl_meta' );
 
@@ -566,7 +580,7 @@ function antradus_lite_save_image_to_library( $img_data, $post_id ) {
 function antradus_lite_generate_image_openai( $image_prompt, $post_id ) {
     $api_key = get_option( 'antradus_openai_api_key', '' );
     if ( ! $api_key ) throw new \RuntimeException( 'OpenAI API key not set. Go to Settings → Antradus AI.' );
-    $model = get_option( 'antradus_openai_image_model', 'gpt-image-1' );
+    $model = get_option( 'antradus_openai_image_model', 'dall-e-2' );
 
     $response = wp_remote_post( 'https://api.openai.com/v1/images/generations', [
         'timeout' => 120,
@@ -706,6 +720,35 @@ function antradus_lite_generate_image_gemini( $image_prompt, $post_id ) {
     return antradus_lite_save_image_to_library( $img_data, $post_id );
 }
 
+// ── Convert article title → safe visual image prompt via text AI ──────────────
+
+function antradus_lite_make_image_prompt( $title ) {
+    $system = 'You are an expert at writing prompts for AI image generators. '
+            . 'Convert the input into a vivid, detailed, creative image prompt. '
+            . 'Depict the subject directly and realistically — use real people, real settings, real objects. '
+            . 'Be specific about scene, subjects, mood, lighting, camera angle, and composition. '
+            . 'For health or medical topics: show doctors, patients, body parts, clinical settings — depicted professionally. '
+            . 'For conflict or political topics: use journalistic or documentary framing — no gore or graphic violence. '
+            . 'For sports topics: show triumph, competition, and athleticism — avoid crashes, injuries, or accidents. '
+            . 'Only avoid: graphic gore, nudity, explicit sexual content, illegal activity, and dangerous or violent scenarios. '
+            . 'Do NOT force metaphors or abstractions — be direct and vivid. '
+            . 'Return only the image prompt. No explanation, no quotes, no preamble.';
+
+    $user_msg = 'Input: ' . $title . "\n\nWrite a vivid image prompt for this.";
+
+    $provider = get_option( 'antradus_provider', 'openrouter' );
+    try {
+        switch ( $provider ) {
+            case 'anthropic':  return antradus_lite_call_anthropic( $system, $user_msg );
+            case 'gemini':     return antradus_lite_call_gemini( $system, $user_msg );
+            case 'openrouter': return antradus_lite_call_openrouter( $system, $user_msg );
+            default:           return antradus_lite_call_openai( $system, $user_msg );
+        }
+    } catch ( \Exception $e ) {
+        return $title;
+    }
+}
+
 // ── Generate image ────────────────────────────────────────────────────────────
 
 add_action( 'wp_ajax_antradus_generate_image', function () {
@@ -722,12 +765,16 @@ add_action( 'wp_ajax_antradus_generate_image', function () {
     $style_prompt = antradus_lite_active_image_style_prompt();
 
     if ( $instructions_only && $extra_instructions ) {
-        $image_prompt = "Generate an image of: " . $extra_instructions . "\n\nVisual style: " . $style_prompt;
+        $visual_desc  = antradus_lite_make_image_prompt( $extra_instructions );
+        $image_prompt = $visual_desc . "\n\nVisual style: " . $style_prompt;
     } else {
-        $image_prompt  = $article_text ? "Create an image for an article about:\n\n" . mb_substr( $article_text, 0, 600 ) . "\n\n" : '';
+        $visual_desc  = $article_text ? antradus_lite_make_image_prompt( $article_text ) : '';
+        $image_prompt  = $visual_desc ? $visual_desc . "\n\n" : '';
         $image_prompt .= "Visual style: " . $style_prompt;
         if ( $extra_instructions ) $image_prompt .= "\n\nAdditional instructions: " . $extra_instructions;
     }
+
+    $image_prompt .= "\n\nNo text, letters, words, numbers, signs, or typography anywhere in the image.";
 
     @set_time_limit( 0 );
 
