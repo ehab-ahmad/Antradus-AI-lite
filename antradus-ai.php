@@ -2,11 +2,11 @@
 /**
  * Plugin Name: Antradus AI Lite
  * Plugin URI:  https://webops.ae/antradus-ai/
- * Description: AI-powered content generator. Generates SEO-friendly articles and meta tags using OpenAI. Write from a topic or external URL. <a href="https://webops.ae/antradus-ai/">Upgrade to Pro</a> for YouTube transcripts, multi-source merge, and more.
+ * Description: AI-powered article and image generator. Write SEO-optimized content from a keyword or URL using OpenAI, Claude, Gemini, or OpenRouter. Works in both Classic and Block editors.
  * Version:     1.0.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
- * Author:      Antradus AI
+ * Author:      ehabahmad
  * License:     GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: antradus-ai-lite

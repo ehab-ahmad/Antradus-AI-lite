@@ -96,11 +96,11 @@ add_action( 'admin_init', function () {
     register_setting( 'antradus_settings_group', 'antradus_image_prompt_entertainment',[ 'sanitize_callback' => 'sanitize_textarea_field' ] );
     register_setting( 'antradus_settings_group', 'antradus_image_color',               [ 'sanitize_callback' => 'sanitize_hex_color', 'default' => '#ff6b35' ] );
     register_setting( 'antradus_settings_group', 'antradus_image_color_enabled',       [ 'sanitize_callback' => function ( $v ) { return $v === '1' ? '1' : '0'; }, 'default' => '0' ] );
-    register_setting( 'antradus_settings_group', 'antradus_disable_gutenberg_posts',   [ 'sanitize_callback' => function ( $v ) { return $v === '1' ? '1' : '0'; }, 'default' => '0' ] );
+    register_setting( 'antradus_settings_group', 'antradus_disable_gutenberg_posts',   [ 'sanitize_callback' => function ( $v ) { return $v === '1' ? '1' : '0'; }, 'default' => '1' ] );
 } );
 
 add_filter( 'use_block_editor_for_post_type', function ( $use, $post_type ) {
-    if ( $post_type === 'post' && get_option( 'antradus_disable_gutenberg_posts', '0' ) === '1' ) {
+    if ( $post_type === 'post' && get_option( 'antradus_disable_gutenberg_posts', '1' ) === '1' ) {
         return false;
     }
     return $use;
@@ -116,22 +116,22 @@ function antradus_lite_settings_page() {
 
     $provider         = get_option( 'antradus_provider', 'openrouter' );
     $openai_key       = get_option( 'antradus_openai_api_key', '' );
-    $openai_model     = esc_attr( get_option( 'antradus_openai_model', 'gpt-4o-mini' ) );
+    $openai_model     = get_option( 'antradus_openai_model', 'gpt-4o-mini' );
     $anthropic_key    = get_option( 'antradus_anthropic_api_key', '' );
-    $anthropic_model  = esc_attr( get_option( 'antradus_anthropic_model', 'claude-haiku-4-5-20251001' ) );
+    $anthropic_model  = get_option( 'antradus_anthropic_model', 'claude-haiku-4-5-20251001' );
     $gemini_key       = get_option( 'antradus_gemini_api_key', '' );
-    $gemini_model     = esc_attr( get_option( 'antradus_gemini_model', 'gemini-2.0-flash-lite' ) );
+    $gemini_model     = get_option( 'antradus_gemini_model', 'gemini-2.0-flash-lite' );
     $openrouter_key   = get_option( 'antradus_openrouter_api_key', '' );
-    $openrouter_model = esc_attr( get_option( 'antradus_openrouter_model', 'google/gemini-2.0-flash-exp:free' ) );
+    $openrouter_model = get_option( 'antradus_openrouter_model', 'google/gemini-2.0-flash-exp:free' );
 
-    $openai_image_model      = esc_attr( get_option( 'antradus_openai_image_model', 'dall-e-2' ) );
-    $gemini_image_model      = esc_attr( get_option( 'antradus_gemini_image_model', 'imagen-3.0-generate-001' ) );
-    $openrouter_image_model  = esc_attr( get_option( 'antradus_openrouter_image_model', 'black-forest-labs/flux-1.1-pro' ) );
+    $openai_image_model      = get_option( 'antradus_openai_image_model', 'dall-e-2' );
+    $gemini_image_model      = get_option( 'antradus_gemini_image_model', 'imagen-3.0-generate-001' );
+    $openrouter_image_model  = get_option( 'antradus_openrouter_image_model', 'black-forest-labs/flux-1.1-pro' );
     $image_preset        = get_option( 'antradus_image_preset', 'default' );
     $image_color         = get_option( 'antradus_image_color', '#ff6b35' );
     $image_color_enabled = get_option( 'antradus_image_color_enabled', '0' );
     $presets             = antradus_lite_image_presets();
-    $topics              = esc_textarea( get_option( 'antradus_topics', "Technology\nGaming\nMedical" ) );
+    $topics              = get_option( 'antradus_topics', "Technology\nGaming\nMedical" );
 
     $default_system  = "You are a professional content writer. Write engaging, SEO-friendly articles for a general audience.\n\n";
     $default_system .= "If one source article is provided, use it only as a fact source — do not follow its structure. ";
@@ -139,7 +139,7 @@ function antradus_lite_settings_page() {
     $default_system .= "Rules:\n- Open with a compelling hook: a scene, question, or bold statement. Never a definition.\n";
     $default_system .= "- Use H1, H2, H3 in clean HTML only — no other tags\n- Short paragraphs, 2-3 lines max\n";
     $default_system .= "- Conversational and confident tone\n- Light authority cues where relevant\n- Target length: 1000-1400 words";
-    $system_prompt = esc_textarea( get_option( 'antradus_system_prompt', $default_system ) );
+    $system_prompt = get_option( 'antradus_system_prompt', $default_system );
 
     ?>
     <div class="wrap antradus-settings-wrap">
@@ -198,8 +198,8 @@ function antradus_lite_settings_page() {
                                     <th scope="row">Model</th>
                                     <td>
                                         <div class="antradus-fetch-row">
-                                            <select name="antradus_openai_model" id="antradus-model-select-openai" data-saved="<?php echo $openai_model; ?>">
-                                                <option value="<?php echo $openai_model; ?>" selected><?php echo $openai_model ?: 'gpt-4o'; ?></option>
+                                            <select name="antradus_openai_model" id="antradus-model-select-openai" data-saved="<?php echo esc_attr( $openai_model ); ?>">
+                                                <option value="<?php echo esc_attr( $openai_model ); ?>" selected><?php echo esc_html( $openai_model ?: 'gpt-4o' ); ?></option>
                                             </select>
                                             <button type="button" class="button antradus-fetch-models-btn" data-provider="openai">&#8635; Fetch Models</button>
                                             <span class="antradus-model-status" id="antradus-model-status-openai"></span>
@@ -211,8 +211,8 @@ function antradus_lite_settings_page() {
                                     <th scope="row">Image Model</th>
                                     <td>
                                         <div class="antradus-fetch-row">
-                                            <select name="antradus_openai_image_model" id="antradus-image-model-select-openai" data-saved="<?php echo $openai_image_model; ?>">
-                                                <option value="<?php echo $openai_image_model; ?>" selected><?php echo $openai_image_model ?: 'gpt-image-1'; ?></option>
+                                            <select name="antradus_openai_image_model" id="antradus-image-model-select-openai" data-saved="<?php echo esc_attr( $openai_image_model ); ?>">
+                                                <option value="<?php echo esc_attr( $openai_image_model ); ?>" selected><?php echo esc_html( $openai_image_model ?: 'gpt-image-1' ); ?></option>
                                             </select>
                                             <button type="button" class="button antradus-fetch-models-btn" data-provider="openai" data-type="image">&#8635; Fetch Image Models</button>
                                             <span class="antradus-model-status" id="antradus-image-model-status-openai"></span>
@@ -243,8 +243,8 @@ function antradus_lite_settings_page() {
                                     <th scope="row">Model</th>
                                     <td>
                                         <div class="antradus-fetch-row">
-                                            <select name="antradus_anthropic_model" id="antradus-model-select-anthropic" data-saved="<?php echo $anthropic_model; ?>">
-                                                <option value="<?php echo $anthropic_model; ?>" selected><?php echo $anthropic_model ?: 'claude-opus-4-7'; ?></option>
+                                            <select name="antradus_anthropic_model" id="antradus-model-select-anthropic" data-saved="<?php echo esc_attr( $anthropic_model ); ?>">
+                                                <option value="<?php echo esc_attr( $anthropic_model ); ?>" selected><?php echo esc_html( $anthropic_model ?: 'claude-opus-4-7' ); ?></option>
                                             </select>
                                             <button type="button" class="button antradus-fetch-models-btn" data-provider="anthropic">&#8635; Fetch Models</button>
                                             <span class="antradus-model-status" id="antradus-model-status-anthropic"></span>
@@ -276,8 +276,8 @@ function antradus_lite_settings_page() {
                                     <th scope="row">Model</th>
                                     <td>
                                         <div class="antradus-fetch-row">
-                                            <select name="antradus_gemini_model" id="antradus-model-select-gemini" data-saved="<?php echo $gemini_model; ?>">
-                                                <option value="<?php echo $gemini_model; ?>" selected><?php echo $gemini_model ?: 'gemini-2.0-flash'; ?></option>
+                                            <select name="antradus_gemini_model" id="antradus-model-select-gemini" data-saved="<?php echo esc_attr( $gemini_model ); ?>">
+                                                <option value="<?php echo esc_attr( $gemini_model ); ?>" selected><?php echo esc_html( $gemini_model ?: 'gemini-2.0-flash' ); ?></option>
                                             </select>
                                             <button type="button" class="button antradus-fetch-models-btn" data-provider="gemini">&#8635; Fetch Models</button>
                                             <span class="antradus-model-status" id="antradus-model-status-gemini"></span>
@@ -289,8 +289,8 @@ function antradus_lite_settings_page() {
                                     <th scope="row">Image Model</th>
                                     <td>
                                         <div class="antradus-fetch-row">
-                                            <select name="antradus_gemini_image_model" id="antradus-image-model-select-gemini" data-saved="<?php echo $gemini_image_model; ?>">
-                                                <option value="<?php echo $gemini_image_model; ?>" selected><?php echo $gemini_image_model ?: 'imagen-3.0-generate-001'; ?></option>
+                                            <select name="antradus_gemini_image_model" id="antradus-image-model-select-gemini" data-saved="<?php echo esc_attr( $gemini_image_model ); ?>">
+                                                <option value="<?php echo esc_attr( $gemini_image_model ); ?>" selected><?php echo esc_html( $gemini_image_model ?: 'imagen-3.0-generate-001' ); ?></option>
                                             </select>
                                             <button type="button" class="button antradus-fetch-models-btn" data-provider="gemini" data-type="image">&#8635; Fetch Image Models</button>
                                             <span class="antradus-model-status" id="antradus-image-model-status-gemini"></span>
@@ -321,8 +321,8 @@ function antradus_lite_settings_page() {
                                     <th scope="row">Model</th>
                                     <td>
                                         <div class="antradus-fetch-row">
-                                            <select name="antradus_openrouter_model" id="antradus-model-select-openrouter" data-saved="<?php echo $openrouter_model; ?>">
-                                                <option value="<?php echo $openrouter_model; ?>" selected><?php echo $openrouter_model ?: 'openai/gpt-4o'; ?></option>
+                                            <select name="antradus_openrouter_model" id="antradus-model-select-openrouter" data-saved="<?php echo esc_attr( $openrouter_model ); ?>">
+                                                <option value="<?php echo esc_attr( $openrouter_model ); ?>" selected><?php echo esc_html( $openrouter_model ?: 'openai/gpt-4o' ); ?></option>
                                             </select>
                                             <button type="button" class="button antradus-fetch-models-btn" data-provider="openrouter">&#8635; Fetch Models</button>
                                             <span class="antradus-model-status" id="antradus-model-status-openrouter"></span>
@@ -334,8 +334,8 @@ function antradus_lite_settings_page() {
                                     <th scope="row">Image Model</th>
                                     <td>
                                         <div class="antradus-fetch-row">
-                                            <select name="antradus_openrouter_image_model" id="antradus-image-model-select-openrouter" data-saved="<?php echo $openrouter_image_model; ?>">
-                                                <option value="<?php echo $openrouter_image_model; ?>" selected><?php echo $openrouter_image_model ?: 'black-forest-labs/flux-1.1-pro'; ?></option>
+                                            <select name="antradus_openrouter_image_model" id="antradus-image-model-select-openrouter" data-saved="<?php echo esc_attr( $openrouter_image_model ); ?>">
+                                                <option value="<?php echo esc_attr( $openrouter_image_model ); ?>" selected><?php echo esc_html( $openrouter_image_model ?: 'black-forest-labs/flux-1.1-pro' ); ?></option>
                                             </select>
                                             <button type="button" class="button antradus-fetch-models-btn" data-provider="openrouter" data-type="image">&#8635; Fetch Image Models</button>
                                             <span class="antradus-model-status" id="antradus-image-model-status-openrouter"></span>
@@ -355,7 +355,7 @@ function antradus_lite_settings_page() {
                             <tr>
                                 <th scope="row">Topics</th>
                                 <td>
-                                    <textarea name="antradus_topics" rows="6" class="large-text" style="font-size:13px;"><?php echo $topics; ?></textarea>
+                                    <textarea name="antradus_topics" rows="6" class="large-text" style="font-size:13px;"><?php echo esc_textarea( $topics ); ?></textarea>
                                     <p class="description">One topic per line. These appear as clickable buttons in the content generator.</p>
                                 </td>
                             </tr>
@@ -369,7 +369,7 @@ function antradus_lite_settings_page() {
                             <tr>
                                 <th scope="row">System Prompt</th>
                                 <td>
-                                    <textarea name="antradus_system_prompt" rows="14" class="large-text" style="font-family:monospace;font-size:12px;"><?php echo $system_prompt; ?></textarea>
+                                    <textarea name="antradus_system_prompt" rows="14" class="large-text" style="font-family:monospace;font-size:12px;"><?php echo esc_textarea( $system_prompt ); ?></textarea>
                                     <p class="description">Base AI instructions. Keyword, language, style, tone, niche, and output format are appended automatically.</p>
                                 </td>
                             </tr>
@@ -385,7 +385,7 @@ function antradus_lite_settings_page() {
                                 <td>
                                     <input type="hidden" name="antradus_disable_gutenberg_posts" value="0" />
                                     <label>
-                                        <input type="checkbox" name="antradus_disable_gutenberg_posts" value="1" <?php checked( get_option( 'antradus_disable_gutenberg_posts', '0' ), '1' ); ?> />
+                                        <input type="checkbox" name="antradus_disable_gutenberg_posts" value="1" <?php checked( get_option( 'antradus_disable_gutenberg_posts', '1' ), '1' ); ?> />
                                         <strong>Disable the Gutenberg block editor for Posts</strong>
                                     </label>
                                     <p class="description" style="margin-top:6px;">
@@ -421,7 +421,7 @@ function antradus_lite_settings_page() {
 
                             <?php foreach ( $presets as $key => $preset_data ) :
                                 $is_active_panel = ( $key === $image_preset );
-                                $saved_prompt    = esc_textarea( get_option( $preset_data['option'], $preset_data['default'] ) );
+                                $saved_prompt    = get_option( $preset_data['option'], $preset_data['default'] );
                             ?>
                             <div class="antradus-tab-panel<?php echo $is_active_panel ? ' is-active' : ''; ?>"
                                  id="antradus-image-tab-panel-<?php echo esc_attr( $key ); ?>"
@@ -430,7 +430,7 @@ function antradus_lite_settings_page() {
                                     <input type="radio" name="antradus_image_preset" value="<?php echo esc_attr( $key ); ?>" <?php checked( $image_preset, $key ); ?> />
                                     <strong>Set as active preset</strong> — this style will be used when generating images
                                 </label>
-                                <textarea name="<?php echo esc_attr( $preset_data['option'] ); ?>" rows="5" class="large-text antradus-preset-textarea"><?php echo $saved_prompt; ?></textarea>
+                                <textarea name="<?php echo esc_attr( $preset_data['option'] ); ?>" rows="5" class="large-text antradus-preset-textarea"><?php echo esc_textarea( $saved_prompt ); ?></textarea>
                                 <p class="description" style="margin-top:4px;">Edit freely — your changes are saved with the form.</p>
                             </div>
                             <?php endforeach; ?>

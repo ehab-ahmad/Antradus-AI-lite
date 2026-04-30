@@ -297,7 +297,7 @@ function antradus_lite_meta_box_html( $post ) {
 }
 
 add_action( 'save_post', function ( $post_id ) {
-    if ( ! isset( $_POST['antradus_nonce'] ) || ! wp_verify_nonce( $_POST['antradus_nonce'], 'antradus_save_meta' ) ) return;
+    if ( ! isset( $_POST['antradus_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['antradus_nonce'] ) ), 'antradus_save_meta' ) ) return;
     if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
     if ( ! current_user_can( 'edit_post', $post_id ) ) return;
 

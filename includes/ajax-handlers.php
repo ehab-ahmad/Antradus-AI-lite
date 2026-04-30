@@ -10,7 +10,7 @@ add_action( 'wp_ajax_antradus_fetch_url', function () {
     $url = esc_url_raw( wp_unslash( $_POST['url'] ?? '' ) );
     if ( ! $url ) wp_send_json_error( 'No URL provided' );
 
-    $parsed = parse_url( $url );
+    $parsed = wp_parse_url( $url );
     if ( ! in_array( strtolower( $parsed['scheme'] ?? '' ), [ 'http', 'https' ], true ) ) {
         wp_send_json_error( 'URL not allowed' );
     }
@@ -25,6 +25,7 @@ add_action( 'wp_ajax_antradus_fetch_url', function () {
         wp_send_json_error( 'URL not allowed' );
     }
 
+    // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
     @set_time_limit( 60 );
 
     $response = wp_remote_get( $url, [
@@ -117,7 +118,7 @@ function antradus_lite_call_openai( $system, $user_msg ) {
     if ( is_wp_error( $response ) ) antradus_lite_throw_request_error( $response );
     $code = wp_remote_retrieve_response_code( $response );
     $body = json_decode( wp_remote_retrieve_body( $response ), true );
-    if ( $code !== 200 ) throw new \RuntimeException( $body['error']['message'] ?? 'HTTP ' . $code );
+    if ( $code !== 200 ) throw new \RuntimeException( esc_html( $body['error']['message'] ?? 'HTTP ' . $code ) );
 
     return $body['choices'][0]['message']['content'] ?? '';
 }
@@ -145,7 +146,7 @@ function antradus_lite_call_anthropic( $system, $user_msg ) {
     if ( is_wp_error( $response ) ) antradus_lite_throw_request_error( $response );
     $code = wp_remote_retrieve_response_code( $response );
     $body = json_decode( wp_remote_retrieve_body( $response ), true );
-    if ( $code !== 200 ) throw new \RuntimeException( $body['error']['message'] ?? 'HTTP ' . $code );
+    if ( $code !== 200 ) throw new \RuntimeException( esc_html( $body['error']['message'] ?? 'HTTP ' . $code ) );
 
     return $body['content'][0]['text'] ?? '';
 }
@@ -169,7 +170,7 @@ function antradus_lite_call_gemini( $system, $user_msg ) {
     if ( is_wp_error( $response ) ) antradus_lite_throw_request_error( $response );
     $code = wp_remote_retrieve_response_code( $response );
     $body = json_decode( wp_remote_retrieve_body( $response ), true );
-    if ( $code !== 200 ) throw new \RuntimeException( $body['error']['message'] ?? 'HTTP ' . $code );
+    if ( $code !== 200 ) throw new \RuntimeException( esc_html( $body['error']['message'] ?? 'HTTP ' . $code ) );
 
     return $body['candidates'][0]['content']['parts'][0]['text'] ?? '';
 }
@@ -202,7 +203,7 @@ function antradus_lite_call_openrouter( $system, $user_msg ) {
     $body = json_decode( wp_remote_retrieve_body( $response ), true );
     if ( $code !== 200 ) {
         $msg = $body['error']['message'] ?? ( 'HTTP ' . $code );
-        throw new \RuntimeException( $msg . ' — Try a different model or check your OpenRouter credits.' );
+        throw new \RuntimeException( esc_html( $msg ) . ' — Try a different model or check your OpenRouter credits.' );
     }
 
     return $body['choices'][0]['message']['content'] ?? '';
@@ -496,11 +497,12 @@ add_action( 'wp_ajax_antradus_generate', function () {
     $tone      = sanitize_text_field( wp_unslash( $_POST['tone']      ?? 'Formal' ) );
     $lang      = sanitize_text_field( wp_unslash( $_POST['lang']      ?? 'English' ) );
     $niche     = sanitize_text_field( wp_unslash( $_POST['niche']     ?? '' ) );
-    $incl_faq  = ( $_POST['incl_faq']  ?? '0' ) === '1';
-    $incl_meta = ( $_POST['incl_meta'] ?? '0' ) === '1';
+    $incl_faq  = ( sanitize_text_field( wp_unslash( $_POST['incl_faq']  ?? '0' ) ) ) === '1';
+    $incl_meta = ( sanitize_text_field( wp_unslash( $_POST['incl_meta'] ?? '0' ) ) ) === '1';
 
     if ( ! $keyword && ! $source ) wp_send_json_error( 'No keyword or source content provided' );
 
+    // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
     @set_time_limit( 0 );
 
     if ( $keyword ) $keyword = antradus_lite_fix_names( $keyword );
@@ -556,13 +558,13 @@ function antradus_lite_throw_request_error( $wp_error ) {
             'The model may be overloaded or slow — try a lighter/faster model in Settings → Antradus AI.'
         );
     }
-    throw new \RuntimeException( 'Request failed: ' . $msg );
+    throw new \RuntimeException( 'Request failed: ' . esc_html( $msg ) );
 }
 
 function antradus_lite_save_image_to_library( $img_data, $post_id ) {
     $filename = 'antradus-ai-' . time() . '.png';
     $upload   = wp_upload_bits( $filename, null, $img_data );
-    if ( $upload['error'] ) throw new \RuntimeException( 'Upload error: ' . $upload['error'] );
+    if ( $upload['error'] ) throw new \RuntimeException( 'Upload error: ' . esc_html( $upload['error'] ) );
 
     $attachment_id = wp_insert_attachment( [
         'post_mime_type' => 'image/png',
@@ -571,7 +573,7 @@ function antradus_lite_save_image_to_library( $img_data, $post_id ) {
         'post_status'    => 'inherit',
     ], $upload['file'], $post_id );
 
-    if ( is_wp_error( $attachment_id ) ) throw new \RuntimeException( 'Attachment error: ' . $attachment_id->get_error_message() );
+    if ( is_wp_error( $attachment_id ) ) throw new \RuntimeException( 'Attachment error: ' . esc_html( $attachment_id->get_error_message() ) );
     wp_update_attachment_metadata( $attachment_id, wp_generate_attachment_metadata( $attachment_id, $upload['file'] ) );
 
     return [ 'attachment_id' => $attachment_id, 'url' => $upload['url'] ];
@@ -599,7 +601,7 @@ function antradus_lite_generate_image_openai( $image_prompt, $post_id ) {
     if ( is_wp_error( $response ) ) antradus_lite_throw_request_error( $response );
     $code = wp_remote_retrieve_response_code( $response );
     $body = json_decode( wp_remote_retrieve_body( $response ), true );
-    if ( $code !== 200 ) throw new \RuntimeException( $body['error']['message'] ?? 'OpenAI error (HTTP ' . $code . ')' );
+    if ( $code !== 200 ) throw new \RuntimeException( esc_html( $body['error']['message'] ?? ( 'OpenAI error (HTTP ' . $code . ')' ) ) );
 
     $image_data = $body['data'][0] ?? [];
 
@@ -611,7 +613,7 @@ function antradus_lite_generate_image_openai( $image_prompt, $post_id ) {
 
     if ( ! empty( $image_data['url'] ) ) {
         $attachment_id = media_sideload_image( $image_data['url'], $post_id, null, 'id' );
-        if ( is_wp_error( $attachment_id ) ) throw new \RuntimeException( 'Could not save image: ' . $attachment_id->get_error_message() );
+        if ( is_wp_error( $attachment_id ) ) throw new \RuntimeException( 'Could not save image: ' . esc_html( $attachment_id->get_error_message() ) );
         return [ 'attachment_id' => $attachment_id, 'url' => wp_get_attachment_url( $attachment_id ) ];
     }
 
@@ -641,7 +643,7 @@ function antradus_lite_generate_image_openrouter( $image_prompt, $post_id ) {
     if ( is_wp_error( $response ) ) antradus_lite_throw_request_error( $response );
     $code = wp_remote_retrieve_response_code( $response );
     $body = json_decode( wp_remote_retrieve_body( $response ), true );
-    if ( $code !== 200 ) throw new \RuntimeException( $body['error']['message'] ?? 'OpenRouter error (HTTP ' . $code . ')' );
+    if ( $code !== 200 ) throw new \RuntimeException( esc_html( $body['error']['message'] ?? ( 'OpenRouter error (HTTP ' . $code . ')' ) ) );
 
     $message = $body['choices'][0]['message'] ?? [];
     $content = $message['content'] ?? null;
@@ -685,7 +687,7 @@ function antradus_lite_generate_image_openrouter( $image_prompt, $post_id ) {
             if ( ! is_wp_error( $attachment_id ) ) return [ 'attachment_id' => $attachment_id, 'url' => wp_get_attachment_url( $attachment_id ) ];
         }
         $preview = mb_substr( $content, 0, 200 );
-        throw new \RuntimeException( 'Model returned text instead of an image. Response: ' . $preview );
+        throw new \RuntimeException( 'Model returned text instead of an image. Response: ' . esc_html( $preview ) );
     }
 
     throw new \RuntimeException( 'No image returned by the model. Try a different image model in Settings → Antradus AI.' );
@@ -709,7 +711,7 @@ function antradus_lite_generate_image_gemini( $image_prompt, $post_id ) {
     if ( is_wp_error( $response ) ) antradus_lite_throw_request_error( $response );
     $code = wp_remote_retrieve_response_code( $response );
     $body = json_decode( wp_remote_retrieve_body( $response ), true );
-    if ( $code !== 200 ) throw new \RuntimeException( $body['error']['message'] ?? 'Gemini error (HTTP ' . $code . ')' );
+    if ( $code !== 200 ) throw new \RuntimeException( esc_html( $body['error']['message'] ?? ( 'Gemini error (HTTP ' . $code . ')' ) ) );
 
     $b64 = $body['predictions'][0]['bytesBase64Encoded'] ?? '';
     if ( ! $b64 ) throw new \RuntimeException( 'No image data returned by Gemini.' );
@@ -757,7 +759,7 @@ add_action( 'wp_ajax_antradus_generate_image', function () {
 
     $article_text       = sanitize_textarea_field( wp_unslash( $_POST['article_text']       ?? '' ) );
     $extra_instructions = sanitize_textarea_field( wp_unslash( $_POST['extra_instructions'] ?? '' ) );
-    $instructions_only  = ( $_POST['instructions_only'] ?? '0' ) === '1';
+    $instructions_only  = ( sanitize_text_field( wp_unslash( $_POST['instructions_only'] ?? '0' ) ) ) === '1';
     $post_id            = absint( $_POST['post_id'] ?? 0 );
 
     if ( ! $article_text && ! $extra_instructions ) wp_send_json_error( 'No article text or instructions provided' );
@@ -776,6 +778,7 @@ add_action( 'wp_ajax_antradus_generate_image', function () {
 
     $image_prompt .= "\n\nNo text, letters, words, numbers, signs, or typography anywhere in the image.";
 
+    // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
     @set_time_limit( 0 );
 
     require_once ABSPATH . 'wp-admin/includes/media.php';
