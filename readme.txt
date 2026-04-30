@@ -8,7 +8,7 @@ Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-AI-powered article and image generator. Write SEO-optimized content from a keyword or URL using OpenAI, Claude, Gemini, or OpenRouter.
+AI-powered article and image generator. Free AI usage via OpenRouter. Rewrite any URL or write from a keyword — OpenAI, Claude, Gemini, or OpenRouter.
 
 == Description ==
 
