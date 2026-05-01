@@ -65,12 +65,10 @@ function antradus_ai_sanitize_checkbox( $v ) {
     return $v === '1' ? '1' : '0';
 }
 
-foreach ( [ 'antradus_openai_api_key', 'antradus_anthropic_api_key', 'antradus_gemini_api_key', 'antradus_openrouter_api_key' ] as $_antradus_api_key ) {
-    add_filter( "pre_update_option_{$_antradus_api_key}", function ( $new, $old ) {
-        return empty( $new ) ? $old : $new;
-    }, 10, 2 );
-}
-unset( $_antradus_api_key );
+add_filter( 'pre_update_option_antradus_openai_api_key',     function ( $new, $old ) { return empty( $new ) ? $old : $new; }, 10, 2 );
+add_filter( 'pre_update_option_antradus_anthropic_api_key',  function ( $new, $old ) { return empty( $new ) ? $old : $new; }, 10, 2 );
+add_filter( 'pre_update_option_antradus_gemini_api_key',     function ( $new, $old ) { return empty( $new ) ? $old : $new; }, 10, 2 );
+add_filter( 'pre_update_option_antradus_openrouter_api_key', function ( $new, $old ) { return empty( $new ) ? $old : $new; }, 10, 2 );
 
 add_action( 'admin_init', function () {
     register_setting( 'antradus_settings_group', 'antradus_provider',             [ 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'openrouter' ] );
