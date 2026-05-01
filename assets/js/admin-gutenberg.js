@@ -176,11 +176,12 @@
                 var kwDisplay = document.getElementById('antradus-keyword-display');
                 var kwRow     = document.getElementById('antradus-keyword-row');
                 if (kwDisplay && kwRow) {
-                    kwDisplay.textContent = keyword;
-                    kwRow.style.display   = keyword ? '' : 'none';
+                    var focusKw = result.focus_keyword || keyword;
+                    kwDisplay.textContent = focusKw;
+                    kwRow.style.display   = focusKw ? '' : 'none';
                 }
                 document.getElementById('antradus-meta-output').style.display = '';
-                fillSeoPlugin(result.meta_title, result.meta_desc, keyword);
+                fillSeoPlugin(result.meta_title, result.meta_desc, result.focus_keyword || keyword);
                 if (result.meta_title) {
                     try { wp.data.dispatch('core/editor').editPost({ title: result.meta_title }); } catch (e) {}
                 }

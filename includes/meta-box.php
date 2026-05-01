@@ -256,24 +256,13 @@ function antradus_lite_meta_box_html( $post ) {
                         <span class="antradus-accordion-arrow">&#9650;</span>
                     </div>
                     <div class="antradus-accordion-body antradus-album-body" id="antradus-album-body">
-                        <div class="antradus-pro-notice antradus-pro-notice--col" style="margin-bottom:12px;">
-                            <span class="antradus-pro-notice-icon">&#128274;</span>
+                        <div class="antradus-pro-notice antradus-pro-notice--col">
+                            <span class="antradus-pro-notice-icon">&#128444;</span>
                             <div>
-                                <strong>Album Generating is a Pro feature.</strong>
+                                <strong>Album Generating is available in Antradus AI Pro.</strong>
                                 Generate multiple images at once from your article or a custom description.
-                                <a href="<?php echo esc_url( ANTRADUS_AI_LITE_PRO_URL ); ?>" target="_blank" rel="noopener" class="antradus-pro-upgrade-link antradus-pro-upgrade-link--row">Upgrade Now &rarr;</a>
+                                <a href="<?php echo esc_url( ANTRADUS_AI_LITE_PRO_URL ); ?>" target="_blank" rel="noopener" class="antradus-pro-upgrade-link antradus-pro-upgrade-link--row">Learn more &rarr;</a>
                             </div>
-                        </div>
-                        <button type="button" class="antradus-album-generate-btn" disabled>
-                            &#128274; Generate Album from Body
-                        </button>
-                        <div class="antradus-field">
-                            <label>DESCRIBE YOUR ALBUM <span class="antradus-label-hint">(optional)</span></label>
-                            <textarea rows="3" disabled placeholder="e.g. Show the product from different angles with bright studio lighting..." style="opacity:.5;cursor:not-allowed;"></textarea>
-                        </div>
-                        <div class="antradus-field">
-                            <label>NUMBER OF IMAGES</label>
-                            <input type="number" min="2" max="10" value="4" disabled style="opacity:.5;cursor:not-allowed;" />
                         </div>
                     </div>
                 </div>

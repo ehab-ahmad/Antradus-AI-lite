@@ -61,42 +61,46 @@ add_action( 'admin_menu', function () {
     add_options_page( 'Antradus AI', 'Antradus AI', 'manage_options', 'antradus-ai', 'antradus_lite_settings_page' );
 } );
 
-add_action( 'admin_init', function () {
-    $preserve = function ( $key ) {
-        return function ( $new ) use ( $key ) {
-            $new = sanitize_text_field( $new );
-            return empty( $new ) ? get_option( $key, '' ) : $new;
-        };
-    };
+function antradus_ai_sanitize_checkbox( $v ) {
+    return $v === '1' ? '1' : '0';
+}
 
-    register_setting( 'antradus_settings_group', 'antradus_provider',             [ 'sanitize_callback' => 'sanitize_text_field', 'default' => 'openrouter' ] );
-    register_setting( 'antradus_settings_group', 'antradus_openai_api_key',        [ 'sanitize_callback' => $preserve( 'antradus_openai_api_key' ) ] );
-    register_setting( 'antradus_settings_group', 'antradus_openai_model',          [ 'sanitize_callback' => 'sanitize_text_field', 'default' => 'gpt-4o' ] );
-    register_setting( 'antradus_settings_group', 'antradus_anthropic_api_key',     [ 'sanitize_callback' => $preserve( 'antradus_anthropic_api_key' ) ] );
-    register_setting( 'antradus_settings_group', 'antradus_anthropic_model',       [ 'sanitize_callback' => 'sanitize_text_field', 'default' => 'claude-opus-4-7' ] );
-    register_setting( 'antradus_settings_group', 'antradus_gemini_api_key',        [ 'sanitize_callback' => $preserve( 'antradus_gemini_api_key' ) ] );
-    register_setting( 'antradus_settings_group', 'antradus_gemini_model',          [ 'sanitize_callback' => 'sanitize_text_field', 'default' => 'gemini-2.0-flash' ] );
-    register_setting( 'antradus_settings_group', 'antradus_openrouter_api_key',    [ 'sanitize_callback' => $preserve( 'antradus_openrouter_api_key' ) ] );
-    register_setting( 'antradus_settings_group', 'antradus_openrouter_model',      [ 'sanitize_callback' => 'sanitize_text_field', 'default' => 'openai/gpt-4o' ] );
-    register_setting( 'antradus_settings_group', 'antradus_topics',                [ 'sanitize_callback' => 'sanitize_textarea_field', 'default' => "Technology\nGaming\nMedical" ] );
-    register_setting( 'antradus_settings_group', 'antradus_system_prompt',         [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
-    register_setting( 'antradus_settings_group', 'antradus_openai_image_model',         [ 'sanitize_callback' => 'sanitize_text_field', 'default' => 'gpt-image-1' ] );
-    register_setting( 'antradus_settings_group', 'antradus_gemini_image_model',        [ 'sanitize_callback' => 'sanitize_text_field', 'default' => 'imagen-3.0-generate-001' ] );
-    register_setting( 'antradus_settings_group', 'antradus_openrouter_image_model',    [ 'sanitize_callback' => 'sanitize_text_field', 'default' => 'black-forest-labs/flux-1.1-pro' ] );
-    register_setting( 'antradus_settings_group', 'antradus_image_preset',              [ 'sanitize_callback' => 'sanitize_text_field', 'default' => 'default' ] );
-    register_setting( 'antradus_settings_group', 'antradus_image_prompt',              [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
-    register_setting( 'antradus_settings_group', 'antradus_image_prompt_gaming',       [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
-    register_setting( 'antradus_settings_group', 'antradus_image_prompt_medical',      [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
-    register_setting( 'antradus_settings_group', 'antradus_image_prompt_news',         [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
-    register_setting( 'antradus_settings_group', 'antradus_image_prompt_sports',       [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
-    register_setting( 'antradus_settings_group', 'antradus_image_prompt_finance',      [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
-    register_setting( 'antradus_settings_group', 'antradus_image_prompt_tech',         [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
-    register_setting( 'antradus_settings_group', 'antradus_image_prompt_food',         [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
-    register_setting( 'antradus_settings_group', 'antradus_image_prompt_travel',       [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
-    register_setting( 'antradus_settings_group', 'antradus_image_prompt_entertainment',[ 'sanitize_callback' => 'sanitize_textarea_field' ] );
-    register_setting( 'antradus_settings_group', 'antradus_image_color',               [ 'sanitize_callback' => 'sanitize_hex_color', 'default' => '#ff6b35' ] );
-    register_setting( 'antradus_settings_group', 'antradus_image_color_enabled',       [ 'sanitize_callback' => function ( $v ) { return $v === '1' ? '1' : '0'; }, 'default' => '0' ] );
-    register_setting( 'antradus_settings_group', 'antradus_disable_gutenberg_posts',   [ 'sanitize_callback' => function ( $v ) { return $v === '1' ? '1' : '0'; }, 'default' => '1' ] );
+foreach ( [ 'antradus_openai_api_key', 'antradus_anthropic_api_key', 'antradus_gemini_api_key', 'antradus_openrouter_api_key' ] as $_antradus_api_key ) {
+    add_filter( "pre_update_option_{$_antradus_api_key}", function ( $new, $old ) {
+        return empty( $new ) ? $old : $new;
+    }, 10, 2 );
+}
+unset( $_antradus_api_key );
+
+add_action( 'admin_init', function () {
+    register_setting( 'antradus_settings_group', 'antradus_provider',             [ 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'openrouter' ] );
+    register_setting( 'antradus_settings_group', 'antradus_openai_api_key',        [ 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field' ] );
+    register_setting( 'antradus_settings_group', 'antradus_openai_model',          [ 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'gpt-4o' ] );
+    register_setting( 'antradus_settings_group', 'antradus_anthropic_api_key',     [ 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field' ] );
+    register_setting( 'antradus_settings_group', 'antradus_anthropic_model',       [ 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'claude-opus-4-7' ] );
+    register_setting( 'antradus_settings_group', 'antradus_gemini_api_key',        [ 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field' ] );
+    register_setting( 'antradus_settings_group', 'antradus_gemini_model',          [ 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'gemini-2.0-flash' ] );
+    register_setting( 'antradus_settings_group', 'antradus_openrouter_api_key',    [ 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field' ] );
+    register_setting( 'antradus_settings_group', 'antradus_openrouter_model',      [ 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'openai/gpt-4o' ] );
+    register_setting( 'antradus_settings_group', 'antradus_topics',                [ 'type' => 'string', 'sanitize_callback' => 'sanitize_textarea_field', 'default' => "Technology\nGaming\nMedical" ] );
+    register_setting( 'antradus_settings_group', 'antradus_system_prompt',         [ 'type' => 'string', 'sanitize_callback' => 'sanitize_textarea_field' ] );
+    register_setting( 'antradus_settings_group', 'antradus_openai_image_model',         [ 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'gpt-image-1' ] );
+    register_setting( 'antradus_settings_group', 'antradus_gemini_image_model',        [ 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'imagen-3.0-generate-001' ] );
+    register_setting( 'antradus_settings_group', 'antradus_openrouter_image_model',    [ 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'black-forest-labs/flux-1.1-pro' ] );
+    register_setting( 'antradus_settings_group', 'antradus_image_preset',              [ 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'default' ] );
+    register_setting( 'antradus_settings_group', 'antradus_image_prompt',              [ 'type' => 'string', 'sanitize_callback' => 'sanitize_textarea_field' ] );
+    register_setting( 'antradus_settings_group', 'antradus_image_prompt_gaming',       [ 'type' => 'string', 'sanitize_callback' => 'sanitize_textarea_field' ] );
+    register_setting( 'antradus_settings_group', 'antradus_image_prompt_medical',      [ 'type' => 'string', 'sanitize_callback' => 'sanitize_textarea_field' ] );
+    register_setting( 'antradus_settings_group', 'antradus_image_prompt_news',         [ 'type' => 'string', 'sanitize_callback' => 'sanitize_textarea_field' ] );
+    register_setting( 'antradus_settings_group', 'antradus_image_prompt_sports',       [ 'type' => 'string', 'sanitize_callback' => 'sanitize_textarea_field' ] );
+    register_setting( 'antradus_settings_group', 'antradus_image_prompt_finance',      [ 'type' => 'string', 'sanitize_callback' => 'sanitize_textarea_field' ] );
+    register_setting( 'antradus_settings_group', 'antradus_image_prompt_tech',         [ 'type' => 'string', 'sanitize_callback' => 'sanitize_textarea_field' ] );
+    register_setting( 'antradus_settings_group', 'antradus_image_prompt_food',         [ 'type' => 'string', 'sanitize_callback' => 'sanitize_textarea_field' ] );
+    register_setting( 'antradus_settings_group', 'antradus_image_prompt_travel',       [ 'type' => 'string', 'sanitize_callback' => 'sanitize_textarea_field' ] );
+    register_setting( 'antradus_settings_group', 'antradus_image_prompt_entertainment',[ 'type' => 'string', 'sanitize_callback' => 'sanitize_textarea_field' ] );
+    register_setting( 'antradus_settings_group', 'antradus_image_color',               [ 'type' => 'string', 'sanitize_callback' => 'sanitize_hex_color', 'default' => '#ff6b35' ] );
+    register_setting( 'antradus_settings_group', 'antradus_image_color_enabled',       [ 'type' => 'string', 'sanitize_callback' => 'antradus_ai_sanitize_checkbox', 'default' => '0' ] );
+    register_setting( 'antradus_settings_group', 'antradus_disable_gutenberg_posts',   [ 'type' => 'string', 'sanitize_callback' => 'antradus_ai_sanitize_checkbox', 'default' => '1' ] );
 } );
 
 add_filter( 'use_block_editor_for_post_type', function ( $use, $post_type ) {
@@ -105,11 +109,6 @@ add_filter( 'use_block_editor_for_post_type', function ( $use, $post_type ) {
     }
     return $use;
 }, 10, 2 );
-
-function antradus_lite_sanitize_api_key( $new ) {
-    $new = sanitize_text_field( $new );
-    return empty( $new ) ? get_option( 'antradus_openai_api_key', '' ) : $new;
-}
 
 function antradus_lite_settings_page() {
     if ( ! current_user_can( 'manage_options' ) ) return;

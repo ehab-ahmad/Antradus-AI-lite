@@ -122,7 +122,7 @@ This plugin sends data to third-party AI services to generate article content an
 **Anthropic** — text generation (Claude models)
 
 * [Privacy Policy](https://www.anthropic.com/legal/privacy)
-* [Terms of Use](https://www.anthropic.com/legal/usage-policy)
+* [Terms of Use](https://www.anthropic.com/legal/aup)
 
 **Google Gemini (Google AI)** — text generation (Gemini models) and image generation (Imagen)
 

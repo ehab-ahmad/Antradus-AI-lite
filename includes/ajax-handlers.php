@@ -450,9 +450,10 @@ function antradus_lite_build_and_run_generate( $job ) {
     $system  = get_option( 'antradus_system_prompt', $default_system ) . "\n\n";
     $system .= "For this article:\n- Language: write entirely in {$lang}\n- Style: {$style}\n- Tone: {$tone}\n";
     if ( $niche )    $system .= "- Topic niche: {$niche}\n";
-    if ( $keyword )  $system .= "- Primary keyword: {$keyword} — use naturally\n";
+    if ( $keyword )  $system .= "- Primary topic/keyword hint: {$keyword} — treat this as a rough draft from the user; expand abbreviations and use proper English in all titles and keyphrases\n";
     if ( $incl_faq ) $system .= "- Add an FAQ section at the end with 4-5 questions and answers\n";
     $system .= "\nReturn a valid JSON object with these keys:\n  \"article\": the full HTML article\n";
+    $system .= "  \"focus_keyword\": the ideal SEO keyphrase for this article — 2-4 words, properly spelled and capitalised, derived from the article content (not the raw user input as-is)\n";
     if ( $incl_meta ) $system .= "  \"meta_title\": SEO meta title (55-60 chars)\n  \"meta_desc\": SEO meta description — strictly max 155 chars, active voice, ends with a call to action, naturally includes the focus keyphrase, unique and matches the article\n";
     $system .= "Return ONLY raw JSON. No markdown fences, no explanation.";
 
@@ -522,9 +523,10 @@ add_action( 'wp_ajax_antradus_generate', function () {
         }
 
         wp_send_json_success( [
-            'article'    => $parsed['article']    ?? '',
-            'meta_title' => $parsed['meta_title'] ?? '',
-            'meta_desc'  => $parsed['meta_desc']  ?? '',
+            'article'       => $parsed['article']       ?? '',
+            'focus_keyword' => $parsed['focus_keyword'] ?? '',
+            'meta_title'    => $parsed['meta_title']    ?? '',
+            'meta_desc'     => $parsed['meta_desc']     ?? '',
         ] );
     } catch ( \Exception $e ) {
         wp_send_json_error( $e->getMessage() );
