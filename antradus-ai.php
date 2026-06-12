@@ -3,7 +3,7 @@
  * Plugin Name: AI-Powered URL Rewriter, Image Creator & Text Generator | Antradus AI Lite
  * Plugin URI:  https://webops.ae/antradus-ai/
  * Description: AI-powered URL rewriter, image creator, and text generator for WordPress. Write SEO-optimized content from a keyword or URL using OpenAI, Claude, Gemini, or OpenRouter. Works in both Classic and Block editors.
- * Version:     1.0.0
+ * Version:     1.0.1
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author:      ehabahmad
