@@ -3,7 +3,7 @@ Contributors: ehabahmad
 Tags: ai, content generator, openai, seo, image generation
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -103,14 +103,9 @@ The plugin uses a unique `antradus_` option prefix and `antradus_lite_` function
 
 == Changelog ==
 
-= 1.0.0 =
-* Initial release.
-* Article generation from keyword or URL using OpenAI, Anthropic, Gemini, and OpenRouter.
-* Image generation with 10 visual style presets via OpenAI, Gemini, and OpenRouter.
-* Classic Editor and Block Editor support.
-* SEO meta title and description generation.
-* AI-powered public figure name correction.
-* SSRF-protected URL fetching.
+= 1.0.1 =
+* Fixed styling issues.
+
 
 == External Services ==
 
