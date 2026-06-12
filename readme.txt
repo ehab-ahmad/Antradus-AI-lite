@@ -94,10 +94,12 @@ The plugin uses a unique `antradus_` option prefix and `antradus_lite_` function
 
 == Screenshots ==
 
-1. The Antradus AI meta box inside the Block Editor — article generation panel
-2. The image generation panel with style presets
-3. Settings page — provider and API key configuration
-4. Settings page — image preset customization
+1. Choose your model (OpenRouter supports free models)
+2. Antradus AI main view
+3. Antradus AI rewrite from external source
+4. Antradus AI writing and style features
+5. Antradus AI Image capabilities 
+6. Antradus AI find your settings page
 
 == Changelog ==
 
