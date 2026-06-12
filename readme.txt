@@ -1,4 +1,4 @@
-=== Antradus AI Lite ===
+=== AI-Powered URL Rewriter, Image Creator & Text Generator | Antradus AI Lite ===
 Contributors: ehabahmad
 Tags: ai, content generator, openai, seo, image generation
 Requires at least: 5.8

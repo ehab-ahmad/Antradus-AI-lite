@@ -43,7 +43,7 @@ add_action( 'admin_enqueue_scripts', function ( $hook ) {
 add_action( 'add_meta_boxes', function () {
     add_meta_box(
         'antradus_ai_box',
-        'Antradus AI Lite — Content Generator',
+        'AI-Powered URL Rewriter, Image Creator & Text Generator | Antradus AI Lite',
         'antradus_lite_meta_box_html',
         [ 'post', 'page' ],
         'normal',
