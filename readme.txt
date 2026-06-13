@@ -8,13 +8,14 @@ Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-AI-powered URL Rewriter, Image Creator & Text Generator. Free AI usage via OpenRouter. Rewrite any URL or write from a keyword — OpenAI, Claude, Gemini, or OpenRouter.
-
+AI-powered External URL Rewriter, Image Creator & Text Generator. Free AI via OpenRouter. All models supported.
 == Description ==
 
 **Antradus AI Lite** generates full SEO-optimized articles and matching images directly inside the WordPress post editor — without leaving your dashboard.
 
 Choose your topic, pick a writing style and tone, and the plugin writes a complete article, SEO meta title, and meta description in seconds. Then generate a matching featured image with one click.
+
+Add an external link and rewrite any external article with one click. 
 
 **Supported AI Providers**
 
