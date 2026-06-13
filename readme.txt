@@ -2,13 +2,13 @@
 Contributors: ehabahmad
 Tags: ai, content generator, openai, seo, image generation
 Requires at least: 5.8
-Tested up to: 6.9
+Tested up to: 7.0
 Stable tag: 1.0.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-AI-powered article and image generator. Free AI usage via OpenRouter. Rewrite any URL or write from a keyword — OpenAI, Claude, Gemini, or OpenRouter.
+AI-powered URL Rewriter, Image Creator & Text Generator. Free AI usage via OpenRouter. Rewrite any URL or write from a keyword — OpenAI, Claude, Gemini, or OpenRouter.
 
 == Description ==
 
@@ -18,10 +18,11 @@ Choose your topic, pick a writing style and tone, and the plugin writes a comple
 
 **Supported AI Providers**
 
-* **OpenAI** — GPT-4o-mini and other GPT models for text; DALL-E 2 / DALL-E 3 for images
-* **Anthropic** — Claude models (Haiku, Sonnet, Opus)
-* **Google Gemini** — Gemini Flash and Pro models; Imagen for images
+* **OpenAI** — All models supported 
+* **Anthropic** — All models supported
+* **Google Gemini** — All models supported
 * **OpenRouter** — Access 200+ models including free tiers (Gemini Flash, Llama, Mistral, and more)
+Check [our AI models recommendation list here ](https://webops.ae/antradus-ai-lite-models-tested/) 
 
 **Key Features**
 
@@ -111,7 +112,7 @@ The plugin uses a unique `antradus_` option prefix and `antradus_lite_` function
 
 This plugin sends data to third-party AI services to generate article content and images. **No data is sent unless you have configured an API key and explicitly click a generate button.**
 
-**OpenAI** — text generation (GPT models) and image generation (DALL-E)
+**OpenAI** — 
 
 * [Privacy Policy](https://openai.com/policies/privacy-policy)
 * [Terms of Use](https://openai.com/policies/usage-policies)
